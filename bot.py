@@ -38,7 +38,9 @@ def start(update: Update, context: CallbackContext):
 @update_log
 def chat_help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
-    update.message.reply_text('Введи команду /start для начала. ')
+    tmp = ["Введи команду /start для начала.",
+           "Введите команду /history, чтобы увидеть последние 5 действий"]
+    update.message.reply_text('\n'.join(tmp))
 
 @update_log
 def echo(update: Update, context: CallbackContext):
@@ -53,23 +55,23 @@ def error(update: Update, context: CallbackContext):
 def history(update: Updater, context: CallbackContext):
     I_start, end = 0, 0
     with open("history.txt", 'w') as handle:
+        answer = []
         if len(LOG_HISTORY) == 0:
             update.message.reply_text("There are no recent actions")
             handle.write("There are no recent actions\n")
         elif len(LOG_HISTORY) < 5:
             end = len(LOG_HISTORY)
-            update.message.reply_text("Last actions are:")
+            answer.append("Last actions are:")
         else:
             I_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
-            update.message.reply_text("Last five actions are:")
-        for i in range(I_start, end, 1):
-            update.message.reply_text(f"Action {i + 1}:")
-            handle.write(f"Action {i + 1}:\n")
-            for key in LOG_HISTORY[i]:
-                update.message.reply_text(f"{key} : {LOG_HISTORY[i][key]}")
-                handle.write(f"{key} : {LOG_HISTORY[i][key]}\n")
-            handle.write("\n")
-
+            answer.append("Last five actions are:")
+        for i in range(I_start, end):
+            answer.append(f"Action {i + 1}:")
+            tmp = LOG_HISTORY[i]
+            for key, value in tmp.items():
+                answer.append(key + " : " + value)
+        update.message.reply_text("\n".join(answer))
+        handle.write("\n".join(answer))
 
 def main():
     bot = Bot(
