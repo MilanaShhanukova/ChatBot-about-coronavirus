@@ -39,7 +39,7 @@ def start(update: Update, context: CallbackContext):
 def chat_help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
     tmp = ["Введи команду /start для начала.",
-           "Введите команду /history, чтобы увидеть последние 5 действий"]
+           "Введите команду /history, чтобы увидеть последние 5 действий."]
     update.message.reply_text('\n'.join(tmp))
 
 @update_log
@@ -67,9 +67,9 @@ def history(update: Updater, context: CallbackContext):
             answer.append("Last five actions are:")
         for i in range(I_start, end):
             answer.append(f"Action {i + 1}:")
-            tmp = LOG_HISTORY[i]
-            for key, value in tmp.items():
+            for key, value in LOG_HISTORY[i].items():
                 answer.append(key + " : " + value)
+            answer[len(answer) - 1] += '\n'
         update.message.reply_text("\n".join(answer))
         handle.write("\n".join(answer))
 
