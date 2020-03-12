@@ -54,7 +54,7 @@ def error(update: Update, context: CallbackContext):
 
 def history(update: Updater, context: CallbackContext):
     I_start, end = 0, 0
-    with open("history.txt", 'w') as handle:
+    with open("history.txt", 'a') as handle:
         answer = []
         if len(LOG_HISTORY) == 0:
             update.message.reply_text("There are no recent actions")
@@ -71,7 +71,7 @@ def history(update: Updater, context: CallbackContext):
                 answer.append(key + " : " + value)
             answer[len(answer) - 1] += '\n'
         update.message.reply_text("\n".join(answer))
-        handle.write("\n".join(answer))
+        handle.write("\n".join(answer) + '\n')
 
 def main():
     bot = Bot(
