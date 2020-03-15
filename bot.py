@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-
+import requests
 from datetime import timedelta, datetime
 from setup import PROXY, TOKEN
 from telegram import Bot, Update
@@ -75,6 +75,15 @@ def date(update: Updater, context: CallbackContext):
     now = datetime.now()
     update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
 
+@update_log 
+def upvoted_post(update: Updater, context: CallbackContext):
+  r = requests.get(r"https://cat-fact.herokuapp.com/facts")
+  p = r.json()
+  all_posts = p["all"]
+  all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
+  update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
+
+
 @update_log
 def history(update: Updater, context: CallbackContext):
     I_start, end = 0, 0
@@ -111,7 +120,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('history', history))
     updater.dispatcher.add_handler(CommandHandler('time', elapsed_time))
     updater.dispatcher.add_handler(CommandHandler('date', date))
-
+    updater.dispatcher.add_handler(CommandHandler('upvoted_post', upvoted_post))
     # on noncommand i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
 
