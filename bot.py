@@ -43,7 +43,8 @@ def chat_help(update: Update, context: CallbackContext):
     tmp = ["Введи команду /start для начала.",
            "Введите команду /history, чтобы увидеть последние 5 действий.",
            "Введите команду /time, чтобы увидеть время, пройденное с последнего вашего сообщения.",
-           "Введите команду /date, чтобы увидеть текущую дату и время."]
+           "Введите команду /date, чтобы увидеть текущую дату и время.",
+           "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com"]
     update.message.reply_text('\n'.join(tmp))
 
 @update_log
@@ -76,7 +77,7 @@ def date(update: Updater, context: CallbackContext):
     update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
 
 @update_log 
-def upvoted_post(update: Updater, context: CallbackContext):
+def fact(update: Updater, context: CallbackContext):
   r = requests.get(r"https://cat-fact.herokuapp.com/facts")
   p = r.json()
   all_posts = p["all"]
@@ -120,7 +121,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('history', history))
     updater.dispatcher.add_handler(CommandHandler('time', elapsed_time))
     updater.dispatcher.add_handler(CommandHandler('date', date))
-    updater.dispatcher.add_handler(CommandHandler('upvoted_post', upvoted_post))
+    updater.dispatcher.add_handler(CommandHandler('fact', fact))
     # on noncommand i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
 
