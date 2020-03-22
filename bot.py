@@ -92,14 +92,9 @@ def date(update: Updater, context: CallbackContext):
 
 @update_log 
 def fact(update: Updater, context: CallbackContext):
-  	r = requests.get(r"https://cat-fact.herokuapp.com/facts")
- 	p = r.json()
-  	all_posts = p["all"]
-  	all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
-  	update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
-  	r = requests.get("https://cat-fact.herokuapp.com/facts")
-  	p = r.json()
-  	all_posts = p["all"]
+    r = requests.get("https://cat-fact.herokuapp.com/facts")
+    p = r.json()
+    all_posts = p["all"]
     all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
     update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
 
