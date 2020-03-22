@@ -5,6 +5,8 @@ import logging
 import requests
 import datetime
 import csv
+import urllib
+
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
@@ -16,7 +18,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 LOG_HISTORY = list()
-
+Location_Aspect = dict()
 
 def update_log(func):
     def new_func(*argc, **kwargs):
@@ -29,16 +31,22 @@ def update_log(func):
                 })
         return func(*argc, **kwargs)
     return new_func
-
-BUTTON1 = "BUTTON_LEFT"
-BUTTON2 = "BUTTON_RIGHT"
-
+# Идентификаторы
+BUTTON1 = "LOCATION_BUTTON_LEFT"
+BUTTON2 = "LOCATION_BUTTON_RIGHT"
+BUTTON3 = "ASPECT_BUTTON_TOP"
+BUTTON4 = "ASPECT_BUTTON_LEFT"
+BUTTON5 = "ASPECT_BUTTON_RIGHT"
+# Информация в кнопках
 TITLES = {
-    BUTTON1: "Привет",
-    BUTTON2: "Пока"
+    BUTTON1: "Провинция/Штат",
+    BUTTON2: "Страна/Регион",
+    BUTTON3: "Подтвержденные случаи",
+    BUTTON4: "Умерло",
+    BUTTON5: "Выздоровело",
 }
-
-def keyboard():
+# Клава с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавы. Тут 1 строка
+def location_keyboard():
     new_keyboard = [
         [
         InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
@@ -46,29 +54,121 @@ def keyboard():
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
-# Define a few command handlers. These usually take the two arguments update and
-# context. Error handlers also receive the raised TelegramError object in error.
 
+# Клава с выбором критерия для вывода. 2 строки ( в списке 2 списка)
+def aspect_keyboard():
+    new_keyboard = [
+        [
+            InlineKeyboardButton(TITLES[BUTTON3], callback_data=BUTTON3),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON4], callback_data=BUTTON4),
+            InlineKeyboardButton(TITLES[BUTTON5], callback_data=BUTTON5),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
+# Скачиваем последний возможный файл с гитхаба и возвращаем часть ответного сообщения
+def download_actual_file():
+    answer = list()
+    now = datetime.datetime.today()
+    now = now.strftime("%m/%d/%Y")
+    now = now.split('/')
+    link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
+    r = requests.get(link)
+    if r.status_code == 200:
+        answer.append("Информация о вирусе на сегодня:")
+    # If there isn't information today, we will take the information for yesterday
+    else:
+        while not r.status_code == 200:
+            now[1] = int(now[1])
+            if now[1] <= 10:
+                now[1] = '0' + str(now[1] - 1)
+            else:
+                now[1] = str(now[1] - 1)
+            link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
+            r = requests.get(link)
+        answer.append(f"Информация на сегодня пока нет. Последние данные на {'/'.join(now)} о вирусе:")
+
+    # Downloading current file
+    with open("current_info.csv", 'w') as csvfile:
+        csvfile.writelines(r.text)
+    return answer
+
+# Получив местоположение и критерий, втаскиваем нужную информацию в ответное сообщение answer через буферный словарь Provinces
+def get_necessary_corona_info(location: str, aspect: str, answer: list):
+    # Getting information
+    with open("current_info.csv", 'r') as csvfile:
+        Provinces = dict()
+        reader = csv.DictReader(csvfile)
+        # Append number of infected people in provinces
+        for row in reader:
+            if row[location]:
+                Provinces[row[location]] = row[aspect]
+                if len(Provinces) == 5:
+                    break
+        #Creating an answer
+        for key in Provinces.keys():
+            answer.append(key + ' : ' + Provinces[key])
+# Вся логика нажатий. При нажатие на первой клаве срабатывает первая ветка IF , вторая клава - ветка ELSE
+# Запоминаем location и aspect в глобальный дикт Location_Aspect Так, как при нажатие на первой клавиатуру все обновится,
+# И данные в локальных переменных умрут) В конце добавляем смайлик, вызываем get_necessary_corona_info и приводим answer
+# К красивому виду, добавив \n
 def keyboard_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     data = query.data
     chat_id = update.effective_message.chat_id
-    if data == BUTTON1:
+    if data == BUTTON1 or data == BUTTON2:
+        text = ""
+        if data == BUTTON1:
+            Location_Aspect["location"] = "Province/State"
+            text = "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!"
+        elif data == BUTTON2:
+            Location_Aspect["location"] = "Country/Region"
+            text = "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"
         context.bot.send_message(
             chat_id=chat_id,
-            text=TITLES[BUTTON1],
-            reply_markup=keyboard(),
+            text=text,
+            reply_markup=aspect_keyboard(),
         )
-    elif data == BUTTON2:
+    else:
+        smile = ""
+        if data == BUTTON3:
+            Location_Aspect["aspect"] = "Confirmed"
+            smile = u'\U0001F637'
+        elif data == BUTTON4:
+            Location_Aspect["aspect"] = "Deaths"
+            smile = u'\U0001F635'
+        elif data == BUTTON5:
+            Location_Aspect["aspect"] = "Recovered"
+            smile = u'\U0001F607'
+        answer = download_actual_file()
+        answer.append(Location_Aspect["aspect"] + ':' + smile)
+        get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
         context.bot.send_message(
             chat_id=chat_id,
-            text=TITLES[BUTTON2],
-            reply_markup=keyboard(),
+            text='\n'.join(answer),
         )
+
+    # Define a few command handlers. These usually take the two arguments update and
+    # context. Error handlers also receive the raised TelegramError object in error.
+# Когда мы вводим /corono_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клаву.
+# Дальше мы попадаем в keyboard_handler, смотреть выше
+def corono_stats(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    smile = u'\U0001F608'
+    text = "Выберете местоположения вируса COVID-19 " + smile
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=location_keyboard(),
+    )
+
 @update_log
 def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
-    update.message.reply_text(f'Привет, {update.effective_user.first_name}!')
+    smile = u'\U0001F603'
+    update.message.reply_text(f"Привет, {update.effective_user.first_name} {smile}!")
 
 @update_log
 def chat_help(update: Update, context: CallbackContext):
@@ -89,7 +189,6 @@ def echo(update: Update, context: CallbackContext):
     context.bot.send_message(
         chat_id=chat_id,
         text=text,
-        reply_markup=keyboard(),
     )
 
 @update_log
@@ -123,46 +222,6 @@ def fact(update: Updater, context: CallbackContext):
     all_posts = p["all"]
     all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
     update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
-
-@update_log
-def corono_stats(update: Updater, context: CallbackContext):
-    answer = list()
-    now = datetime.datetime.today()
-    now = now.strftime("%m/%d/%Y")
-    now = now.split('/')
-    link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
-    r = requests.get(link)
-    if r.status_code == 200:
-        answer.append("Информация на сегодня о самых зараженных провинциях:")
-    # If there isn't information today, we will take the information for yesterday
-    else:
-        while not r.status_code == 200:
-            now[1] = int(now[1])
-            if now[1] <= 10:
-                now[1] = '0' + str(now[1] - 1)
-            else:
-                now[1] = str(now[1] - 1)
-            link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
-            r = requests.get(link)
-        answer.append(f"Информация на сегодня пока нет. Последние данные на {'/'.join(now)} о вирусе в самых зараженных провинциях:")
-
-    # Downloading current file
-    with open("current_info.csv", 'w') as csvfile:
-        csvfile.writelines(r.text)
-    # Getting information
-    with open("current_info.csv", 'r') as csvfile:
-        Provinces = dict()
-        reader = csv.DictReader(csvfile)
-        # Append number of infected people in provinces
-        for row in reader:
-            if row["Province/State"]:
-                Provinces[row["Province/State"]] = row["Confirmed"]
-                if len(Provinces) == 5:
-                    break
-    # Creating an answer
-    for key in Provinces.keys():
-        answer.append(key + ' : ' + Provinces[key])
-    update.message.reply_text('\n'.join(answer))
 
 @update_log
 def history(update: Updater, context: CallbackContext):
