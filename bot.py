@@ -6,8 +6,8 @@ import requests
 import datetime
 import csv
 from setup import PROXY, TOKEN
-from telegram import Bot, Update
-from telegram.ext import CallbackContext, CommandHandler, Filters, MessageHandler, Updater
+from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -30,9 +30,41 @@ def update_log(func):
         return func(*argc, **kwargs)
     return new_func
 
+BUTTON1 = "BUTTON_LEFT"
+BUTTON2 = "BUTTON_RIGHT"
+
+TITLES = {
+    BUTTON1: "Привет",
+    BUTTON2: "Пока"
+}
+
+def keyboard():
+    new_keyboard = [
+        [
+        InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
+        InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
 
+def keyboard_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    data = query.data
+    chat_id = update.effective_message.chat_id
+    if data == BUTTON1:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=TITLES[BUTTON1],
+            reply_markup=keyboard(),
+        )
+    elif data == BUTTON2:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=TITLES[BUTTON2],
+            reply_markup=keyboard(),
+        )
 @update_log
 def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
@@ -52,7 +84,13 @@ def chat_help(update: Update, context: CallbackContext):
 @update_log
 def echo(update: Update, context: CallbackContext):
     """Echo the user message."""
-    update.message.reply_text(update.message.text)
+    chat_id = update.message.chat_id
+    text = update.message.text
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=keyboard(),
+    )
 
 @update_log
 def error(update: Update, context: CallbackContext):
@@ -164,6 +202,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('date', date))
     updater.dispatcher.add_handler(CommandHandler('fact', fact))
     updater.dispatcher.add_handler(CommandHandler('corono_stats', corono_stats))
+    updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
     # on noncommand i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
