@@ -3,7 +3,6 @@
 
 import logging
 import requests
-from datetime import timedelta, datetime
 import datetime
 import csv
 from setup import PROXY, TOKEN
@@ -46,7 +45,6 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /history, чтобы увидеть последние 5 действий.",
            "Введите команду /time, чтобы увидеть время, пройденное с последнего вашего сообщения.",
            "Введите команду /date, чтобы увидеть текущую дату и время.",
-           "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com"
            "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
            "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
     update.message.reply_text('\n'.join(tmp))
@@ -64,15 +62,6 @@ def error(update: Update, context: CallbackContext):
 @update_log
 def elapsed_time(update: Updater, context: CallbackContext):
     user = update.effective_user.first_name
-    period = timedelta(0)
-    if len(LOG_HISTORY) > 1:
-        for i in range(len(LOG_HISTORY) - 2, -1, -1):
-            if LOG_HISTORY[i]["user"] == user:
-                time_delta = timedelta(hours=3, minutes=0, seconds=0)
-                period = LOG_HISTORY[i]["date"] + time_delta
-                period = datetime.now() - period
-                print(str(i) , str(period))
-                break;
     period = datetime.timedelta(0)
     if len(LOG_HISTORY) > 1:
         for i in range(len(LOG_HISTORY) - 2, -1, -1):
@@ -86,7 +75,6 @@ def elapsed_time(update: Updater, context: CallbackContext):
 
 @update_log
 def date(update: Updater, context: CallbackContext):
-    now = datetime.now()
     now = datetime.datetime.now()
     update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
 
@@ -158,8 +146,6 @@ def history(update: Updater, context: CallbackContext):
                 for key, value in LOG_HISTORY[i].items():
                     answer.append(key + " : " + str(value))
                 answer[len(answer) - 1] += '\n'
-            update.message.reply_text("\n".join(answer))
-            handle.write("\n".join(answer) + '\n')
             update.message.reply_text('\n'.join(answer))
             handle.write('\n'.join(answer) + '\n')
 
