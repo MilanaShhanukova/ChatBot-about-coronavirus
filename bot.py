@@ -320,6 +320,7 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /date, чтобы увидеть текущую дату и время.",
            "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
            "Введите команду /weather, чтобы проверить погоду.",
+           "Введите команду /know_money, чтобы курс валют.",
            "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
     update.message.reply_text('\n'.join(tmp))
 
