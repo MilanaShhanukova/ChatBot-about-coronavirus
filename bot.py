@@ -138,17 +138,21 @@ def download_actual_file():
 def get_necessary_corona_info(location: str, aspect: str, answer: list):
     # Getting information
     with open("current_info.csv", 'r') as csvfile:
-        Provinces = dict()
+        places = list()
         reader = csv.DictReader(csvfile)
         # Append number of infected people in provinces
         for row in reader:
             if row[location]:
-                Provinces[row[location]] = row[aspect]
-                if len(Provinces) == 5:
-                    break
-        #Creating an answer
-        for key in Provinces.keys():
-            answer.append(key + ' : ' + Provinces[key])
+                pair = (
+                    row[location],
+                    int(row[aspect]),
+                )
+                places.append(pair)
+        places.sort(key=lambda target: target[1])
+        # Creating an answer
+        for i in range(5):
+            answer.append(places[len(places) - 1 - i][0] + " : " + str(places[len(places) - 1 - i][1]))
+
 
 @update_log
 def check_weather(update: Update, context: CallbackContext):
