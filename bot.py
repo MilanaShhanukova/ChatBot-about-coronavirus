@@ -6,6 +6,7 @@ import requests
 import datetime
 import csv
 import urllib
+import pyowm
 
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -31,12 +32,17 @@ def update_log(func):
                 })
         return func(*argc, **kwargs)
     return new_func
+
 # Идентификаторы
 BUTTON1 = "LOCATION_BUTTON_LEFT"
 BUTTON2 = "LOCATION_BUTTON_RIGHT"
 BUTTON3 = "ASPECT_BUTTON_TOP"
 BUTTON4 = "ASPECT_BUTTON_LEFT"
 BUTTON5 = "ASPECT_BUTTON_RIGHT"
+BUTTON6 = "CITY1"
+BUTTON7 = "CITY2"
+BUTTON8 = "CITY3"
+BUTTON9 = "DETAILED_INFO_ABOUT_WEATHER"
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -44,7 +50,26 @@ TITLES = {
     BUTTON3: "Подтвержденные случаи",
     BUTTON4: "Умерло",
     BUTTON5: "Выздоровело",
+    BUTTON6: "Нижний Новгород",
+    BUTTON7: "Москва",
+    BUTTON8: "Санкт-Петербург",
+    BUTTON9: "▶ Узнать подробную информацию о погоде на сегодня ◀",
 }
+
+def detailed_info_about_weather_keyboard():
+    new_keyboard = [
+        [InlineKeyboardButton(TITLES[BUTTON9], callback_data=BUTTON9)],
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
+def city_keyboard():
+    new_keyboard = [
+        [InlineKeyboardButton(TITLES[BUTTON6], callback_data=BUTTON6)],
+        [InlineKeyboardButton(TITLES[BUTTON7], callback_data=BUTTON7)],
+        [InlineKeyboardButton(TITLES[BUTTON8], callback_data=BUTTON8)],
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
 # Клава с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавы. Тут 1 строка
 def location_keyboard():
     new_keyboard = [
@@ -110,6 +135,16 @@ def get_necessary_corona_info(location: str, aspect: str, answer: list):
         #Creating an answer
         for key in Provinces.keys():
             answer.append(key + ' : ' + Provinces[key])
+
+@update_log
+def check_weather(update: Update, context: CallbackContext):
+    chat_id = update.message.chat_id
+    context.bot.send_message(
+        chat_id=chat_id,
+        text= "Выберете город! 👀",
+        reply_markup= city_keyboard(),
+    )
+
 # Вся логика нажатий. При нажатие на первой клаве срабатывает первая ветка IF , вторая клава - ветка ELSE
 # Запоминаем location и aspect в глобальный дикт Location_Aspect Так, как при нажатие на первой клавиатуру все обновится,
 # И данные в локальных переменных умрут) В конце добавляем смайлик, вызываем get_necessary_corona_info и приводим answer
@@ -131,7 +166,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
             text=text,
             reply_markup=aspect_keyboard(),
         )
-    else:
+    elif data == BUTTON3 or data == BUTTON4 or data == BUTTON5:
         smile = ""
         if data == BUTTON3:
             Location_Aspect["aspect"] = "Confirmed"
@@ -148,6 +183,64 @@ def keyboard_handler(update: Update, context: CallbackContext):
         context.bot.send_message(
             chat_id=chat_id,
             text='\n'.join(answer),
+        )
+    elif data == BUTTON9:
+        owm = pyowm.OWM('6d00d1d4e704068d70191bad2673e0cc', language="ru")
+        observation = owm.weather_at_place(Location_Aspect["CURRENT_CITY"])
+        w = observation.get_weather()
+        status = w.get_detailed_status()
+        temp = w.get_temperature('celsius')
+        sunrise = w.get_sunrise_time('iso')
+        sunset = w.get_sunset_time('iso')
+        sunrise = sunrise[sunrise.find(" "): sunrise.find("+")]
+        sunset = sunset[sunset.find(" "): sunset.find("+")]
+        answer = "Сегодня: \n"
+        answer += "✅ В городе " + Location_Aspect["CURRENT_CITY"] + " сейчас " + status + '\n'
+        answer += "✅ Максимальная температура: " + str(temp["temp_max"]) + ' градусов \n'
+        answer += "✅ Средняя температура: " + str(temp["temp"]) + ' градусов \n'
+        answer += "✅ Минимальная температура: " + str(temp["temp_min"]) + ' градусов \n'
+        answer += "✅ Скорость ветра: " + str(w.get_wind()['speed']) + ' м/с \n'
+        answer += "✅ Влажность воздуха: " + str(w.get_humidity()) + ' % \n'
+        answer += "✅ Давление: " + str(round(w.get_pressure()['press'] * 100 * 0.00750063755419211)) + ' мм.рт.ст\n'
+        answer += "✅ Время рассвета: " + sunrise + ' \n'
+        answer += "✅ Время заката: " + sunset + ' \n'
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=answer,
+        )
+    else:
+        place =""
+        if data == BUTTON6:
+            place = TITLES[BUTTON6]
+        if data == BUTTON7:
+            place = TITLES[BUTTON7]
+        if data == BUTTON8:
+            place = TITLES[BUTTON8]
+        Location_Aspect["CURRENT_CITY"] = place
+        owm = pyowm.OWM('6d00d1d4e704068d70191bad2673e0cc', language="ru")
+        observation = owm.weather_at_place(place)
+        w = observation.get_weather()
+        status = w.get_detailed_status()
+        temp = w.get_temperature('celsius')
+        answer = "В городе " + place + " сейчас " + status
+        if status == "ясно":
+            answer += "☀\n"
+        elif status == "облачно":
+            answer += "☁\n"
+        elif status == "дождливо":
+            answer += "🌧\n"
+        else:
+            answer += "\n"
+        if temp["temp"] <= 0:
+            answer += "Сейчас очень холодно! Одевайся как танк!! 🥶\n"
+        elif temp["temp"] < 16:
+            answer += "Сейчас прохладно, лучше оденься потеплее! 👍\n"
+        else:
+            answer += "Температура в самый раз! Одевайся, как хочешь! 😊\n"
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=answer,
+            reply_markup= detailed_info_about_weather_keyboard(),
         )
 
     # Define a few command handlers. These usually take the two arguments update and
@@ -175,9 +268,10 @@ def chat_help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
     tmp = ["Введи команду /start для начала.",
            "Введите команду /history, чтобы увидеть последние 5 действий.",
-           "Введите команду /time, чтобы увидеть время, пройденное с последнего вашего сообщения.",
+           "Введите команду /time, чтобы увидеть время, прошедшее с последнего вашего сообщения.",
            "Введите команду /date, чтобы увидеть текущую дату и время.",
            "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
+           "Введите команду /weather, чтобы проверить погоду.",
            "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
     update.message.reply_text('\n'.join(tmp))
 
@@ -260,6 +354,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('time', elapsed_time))
     updater.dispatcher.add_handler(CommandHandler('date', date))
     updater.dispatcher.add_handler(CommandHandler('fact', fact))
+    updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
     updater.dispatcher.add_handler(CommandHandler('corono_stats', corono_stats))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
