@@ -43,6 +43,8 @@ BUTTON6 = "CITY1"
 BUTTON7 = "CITY2"
 BUTTON8 = "CITY3"
 BUTTON9 = "DETAILED_INFO_ABOUT_WEATHER"
+BUTTON10 = "DOLLAR"
+BUTTON11 = "EVRO"
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -54,7 +56,10 @@ TITLES = {
     BUTTON7: "Москва",
     BUTTON8: "Санкт-Петербург",
     BUTTON9: "▶ Узнать подробную информацию о погоде на сегодня ◀",
+    BUTTON10: "Доллар США ＄",
+    BUTTON11: "Евро €",
 }
+
 
 def detailed_info_about_weather_keyboard():
     new_keyboard = [
@@ -76,6 +81,15 @@ def location_keyboard():
         [
         InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
         InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
+def money_keyboard():
+    new_keyboard = [
+        [
+        InlineKeyboardButton(TITLES[BUTTON10], callback_data=BUTTON10),
+        InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11),
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
@@ -144,7 +158,23 @@ def check_weather(update: Update, context: CallbackContext):
         text= "Выберете город! 👀",
         reply_markup= city_keyboard(),
     )
-
+@update_log
+def money(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    context.bot.send_message(
+        chat_id=chat_id,
+        text="Выберете валюту!",
+        reply_markup=money_keyboard(),
+    )
+def get_money(name):
+    my_xml = requests.get("https://www.cbr-xml-daily.ru/daily_json.js").json()
+    countries = my_xml["Valute"]
+    answer = ""
+    for country in countries.keys():
+        all_feat = countries[country] #словарик всех данных о валюте
+        if all_feat['Name'] == name[:-2]:
+            answer = f"стоимость {all_feat['Name']} сейчас {all_feat['Value']} ₽"
+    return answer
 # Вся логика нажатий. При нажатие на первой клаве срабатывает первая ветка IF , вторая клава - ветка ELSE
 # Запоминаем location и aspect в глобальный дикт Location_Aspect Так, как при нажатие на первой клавиатуру все обновится,
 # И данные в локальных переменных умрут) В конце добавляем смайлик, вызываем get_necessary_corona_info и приводим answer
@@ -184,32 +214,8 @@ def keyboard_handler(update: Update, context: CallbackContext):
             chat_id=chat_id,
             text='\n'.join(answer),
         )
-    elif data == BUTTON9:
-        owm = pyowm.OWM('6d00d1d4e704068d70191bad2673e0cc', language="ru")
-        observation = owm.weather_at_place(Location_Aspect["CURRENT_CITY"])
-        w = observation.get_weather()
-        status = w.get_detailed_status()
-        temp = w.get_temperature('celsius')
-        sunrise = w.get_sunrise_time('iso')
-        sunset = w.get_sunset_time('iso')
-        sunrise = sunrise[sunrise.find(" "): sunrise.find("+")]
-        sunset = sunset[sunset.find(" "): sunset.find("+")]
-        answer = "Сегодня: \n"
-        answer += "✅ В городе " + Location_Aspect["CURRENT_CITY"] + " сейчас " + status + '\n'
-        answer += "✅ Максимальная температура: " + str(temp["temp_max"]) + ' градусов \n'
-        answer += "✅ Средняя температура: " + str(temp["temp"]) + ' градусов \n'
-        answer += "✅ Минимальная температура: " + str(temp["temp_min"]) + ' градусов \n'
-        answer += "✅ Скорость ветра: " + str(w.get_wind()['speed']) + ' м/с \n'
-        answer += "✅ Влажность воздуха: " + str(w.get_humidity()) + ' % \n'
-        answer += "✅ Давление: " + str(round(w.get_pressure()['press'] * 100 * 0.00750063755419211)) + ' мм.рт.ст\n'
-        answer += "✅ Время рассвета: " + sunrise + ' \n'
-        answer += "✅ Время заката: " + sunset + ' \n'
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=answer,
-        )
-    else:
-        place =""
+    elif data == BUTTON6 or data == BUTTON7 or data == BUTTON8:
+        place = ""
         if data == BUTTON6:
             place = TITLES[BUTTON6]
         if data == BUTTON7:
@@ -240,8 +246,46 @@ def keyboard_handler(update: Update, context: CallbackContext):
         context.bot.send_message(
             chat_id=chat_id,
             text=answer,
-            reply_markup= detailed_info_about_weather_keyboard(),
+            reply_markup=detailed_info_about_weather_keyboard(),
         )
+    elif data == BUTTON9:
+        owm = pyowm.OWM('6d00d1d4e704068d70191bad2673e0cc', language="ru")
+        observation = owm.weather_at_place(Location_Aspect["CURRENT_CITY"])
+        w = observation.get_weather()
+        status = w.get_detailed_status()
+        temp = w.get_temperature('celsius')
+        sunrise = w.get_sunrise_time('iso')
+        sunset = w.get_sunset_time('iso')
+        sunrise = sunrise[sunrise.find(" "): sunrise.find("+")]
+        sunset = sunset[sunset.find(" "): sunset.find("+")]
+        answer = "Сегодня: \n"
+        answer += "✅ В городе " + Location_Aspect["CURRENT_CITY"] + " сейчас " + status + '\n'
+        answer += "✅ Максимальная температура: " + str(temp["temp_max"]) + ' градусов \n'
+        answer += "✅ Средняя температура: " + str(temp["temp"]) + ' градусов \n'
+        answer += "✅ Минимальная температура: " + str(temp["temp_min"]) + ' градусов \n'
+        answer += "✅ Скорость ветра: " + str(w.get_wind()['speed']) + ' м/с \n'
+        answer += "✅ Влажность воздуха: " + str(w.get_humidity()) + ' % \n'
+        answer += "✅ Давление: " + str(round(w.get_pressure()['press'] * 100 * 0.00750063755419211)) + ' мм.рт.ст\n'
+        answer += "✅ Время рассвета: " + sunrise + ' \n'
+        answer += "✅ Время заката: " + sunset + ' \n'
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=answer,
+        )
+    elif data == BUTTON10:
+        name = TITLES[BUTTON10]
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=get_money(name),
+        )
+    elif data == BUTTON11:
+        name = TITLES[BUTTON11]
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=get_money(name),
+        )
+
+
 
     # Define a few command handlers. These usually take the two arguments update and
     # context. Error handlers also receive the raised TelegramError object in error.
@@ -317,6 +361,7 @@ def fact(update: Updater, context: CallbackContext):
     all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
     update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
 
+
 @update_log
 def history(update: Updater, context: CallbackContext):
     I_start, end = 0, 0
@@ -356,6 +401,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('fact', fact))
     updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
     updater.dispatcher.add_handler(CommandHandler('corono_stats', corono_stats))
+    updater.dispatcher.add_handler(CommandHandler('know_money', money))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
     # on noncommand i.e message - echo the message on Telegram
