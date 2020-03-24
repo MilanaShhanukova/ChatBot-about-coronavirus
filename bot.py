@@ -291,7 +291,7 @@ def get_money(name):
     for country in countries.keys():
         all_feat = countries[country] #словарик всех данных о валюте
         if all_feat['Name'] == name[:-2]:
-            answer = f"стоимость {all_feat['Name']} сейчас {all_feat['Value']} ₽"
+            answer = f"Стоимость {all_feat['Name']} сейчас {all_feat['Value']} ₽"
     return answer
 
 # Обработчик клавиатуры. Тут происходит вся логика после нажатий на клавиши:
@@ -374,6 +374,16 @@ def keyboard_handler(update: Update, context: CallbackContext):
         sunset = w.get_sunset_time('iso')
         sunrise = sunrise[sunrise.find(" "): sunrise.find("+")]
         sunset = sunset[sunset.find(" "): sunset.find("+")]
+        shift = int(sunrise[:sunrise.find(":")]) + 3
+        if shift < 10:
+            sunrise = '0' + str(shift) + sunrise[sunrise.find(":"):]
+        else:
+            sunrise = str(shift) + sunrise[sunrise.find(":"):]
+        shift = int(sunset[:sunset.find(":")]) + 3
+        if shift < 10:
+            sunset = '0' + str(shift) + sunset[sunset.find(":"):]
+        else:
+            sunset = str(shift) + sunset[sunset.find(":"):]
         answer = "Сегодня: \n"
         answer += "✅ В городе " + Location_Aspect["CURRENT_CITY"] + " сейчас " + status + '\n'
         answer += "✅ Максимальная температура: " + str(temp["temp_max"]) + ' градусов \n'
