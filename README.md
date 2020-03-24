@@ -17,12 +17,11 @@ Now we have some tasks to upgrade our bot:
 				Functional:
 1)/start - start working with the bot.
 2)/help - overview of available functionality.
-3)/time - allows you to view the time from the last day of your message.
+3)/time - allows you to view the time from your last message.
 4)/date - allows you to see the current date and time.
-5)/fact - allows you to see the most Zalaikan post on cat-fact.herokuapp.com.
+5)/fact - allows you to see your favorite post on cat-fact.herokuapp.com.
 6)/weather - allows you to see the weather in any of the following cities: Nizhny Novgorod, Moscow and St. Petersburg, as well as detailed weather information for the current day. It includes pressure, max., min., cf. temperature, humidity, wind speed, sunset and dawn time. Everything is implemented with the help of buttons under the bot's messages for more comfort! As well as our smart bot will not forget to give you advice on how to dress for the current day!)
 7)/check_exchange_rates - allows you to see the dollar or euro rate for the current date. Implemented using the buttons.
-8)/corono_stats - Perhaps the most powerful and relevant function of our bot. You can select Provinces/States, Countries/Districts to see the required statistics about the top 5 'biggest' countries, as well as a choice! You can get information about deaths, recoveries and sick people in 1 click! You can also enter the name of the country yourself to get information about it!
-
+8)/corono_stats - Perhaps the most powerful and relevant function of our bot. You can select Provinces/States, Countries/Districts to see the required statistics about the top 5 'biggest' countries, as well as a choice! You can get information about deaths, recoveries and illnesses in 1 click! You can also enter the name of the country yourself to get information about it!
 
 
