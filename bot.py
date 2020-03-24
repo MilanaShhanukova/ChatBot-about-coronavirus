@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 LOG_HISTORY = list()
 Location_Aspect = dict()
-
+Location_Aspect["Choose_country"] = False
 # Декоратор для логгирования:
 def update_log(func):
     def new_func(*argc, **kwargs):
@@ -45,6 +45,7 @@ BUTTON8 = "CITY3"
 BUTTON9 = "DETAILED_INFO_ABOUT_WEATHER"
 BUTTON10 = "DOLLAR"
 BUTTON11 = "EVRO"
+BUTTON12 = "CHOOSE_COUNTRY"
 
 # Информация в кнопках
 TITLES = {
@@ -59,6 +60,7 @@ TITLES = {
     BUTTON9: "▶ Узнать подробную информацию о погоде на сегодня ◀",
     BUTTON10: "Доллар США ＄",
     BUTTON11: "Евро €",
+    BUTTON12: "▶ Ввести название страны ◀",
 }
 
 # Клавиатуры:
@@ -80,8 +82,11 @@ def city_keyboard():
 def location_keyboard():
     new_keyboard = [
         [
-        InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
-        InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
+            InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
+            InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON12], callback_data=BUTTON12),
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
@@ -162,12 +167,56 @@ def chat_help(update: Update, context: CallbackContext):
 @update_log
 def echo(update: Update, context: CallbackContext):
     """Echo the user message."""
-    chat_id = update.message.chat_id
-    text = update.message.text
-    context.bot.send_message(
-        chat_id=chat_id,
-        text=text,
-    )
+    if not Location_Aspect["Choose_country"]:
+        chat_id = update.message.chat_id
+        text = update.message.text
+        context.bot.send_message(
+            chat_id=chat_id,
+            text=text,
+        )
+    else:
+        with open("current_info.csv", "r") as csvfile:
+            reader = csv.DictReader(csvfile)
+            places = []
+            new_places = []
+            buffer = []
+            for row in reader:
+                el = [
+                    row["Country_Region"],
+                    int(row["Confirmed"]),
+                    int(row["Deaths"]),
+                    int(row["Recovered"]),
+                ]
+                places.append(el)
+            for country in places:
+                if update.message.text == country[0]:
+                    for el in places:
+                        if el[0] not in buffer:
+                            buffer.append(el[0])
+                            new_places.append(el)
+                        else:
+                            for row in new_places:
+                                if row[0] == el[0]:
+                                    row[1] += el[1]
+                                    row[2] += el[2]
+                                    row[3] += el[3]
+                                    break
+                    for row in new_places:
+                        if row[0] == update.message.text:
+                            chat_id = update.message.chat_id
+                            context.bot.send_message(
+                                chat_id=chat_id,
+                                text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇"
+                            )
+                            break
+                    Location_Aspect["Choose_country"] = False
+                    return
+            chat_id = update.message.chat_id
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="Введите корректное название страны 😟",
+            )
+
 
 @update_log
 def error(update: Update, context: CallbackContext):
@@ -193,7 +242,7 @@ def date(update: Updater, context: CallbackContext):
     now = datetime.datetime.now()
     update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
 
-@update_log 
+@update_log
 def fact(update: Updater, context: CallbackContext):
     r = requests.get("https://cat-fact.herokuapp.com/facts")
     p = r.json()
@@ -291,7 +340,7 @@ def get_money(name):
     for country in countries.keys():
         all_feat = countries[country] #словарик всех данных о валюте
         if all_feat['Name'] == name[:-2]:
-            answer = f"стоимость {all_feat['Name']} сейчас {all_feat['Value']} ₽"
+            answer = f"Стоимость {all_feat['Name']} сейчас {all_feat['Value']} ₽"
     return answer
 
 # Обработчик клавиатуры. Тут происходит вся логика после нажатий на клавиши:
@@ -374,6 +423,16 @@ def keyboard_handler(update: Update, context: CallbackContext):
         sunset = w.get_sunset_time('iso')
         sunrise = sunrise[sunrise.find(" "): sunrise.find("+")]
         sunset = sunset[sunset.find(" "): sunset.find("+")]
+        shift = int(sunrise[:sunrise.find(":")]) + 3
+        if shift < 10:
+            sunrise = '0' + str(shift) + sunrise[sunrise.find(":"):]
+        else:
+            sunrise = str(shift) + sunrise[sunrise.find(":"):]
+        shift = int(sunset[:sunset.find(":")]) + 3
+        if shift < 10:
+            sunset = '0' + str(shift) + sunset[sunset.find(":"):]
+        else:
+            sunset = str(shift) + sunset[sunset.find(":"):]
         answer = "Сегодня: \n"
         answer += "✅ В городе " + Location_Aspect["CURRENT_CITY"] + " сейчас " + status + '\n'
         answer += "✅ Максимальная температура: " + str(temp["temp_max"]) + ' градусов \n'
@@ -400,7 +459,8 @@ def keyboard_handler(update: Update, context: CallbackContext):
             chat_id=chat_id,
             text=get_money(name),
         )
-
+    elif data == BUTTON12:
+        Location_Aspect["Choose_country"] = True
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
     bot = Bot(
