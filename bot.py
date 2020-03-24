@@ -175,6 +175,7 @@ def echo(update: Update, context: CallbackContext):
             text=text,
         )
     else:
+        answer = download_actual_file()
         with open("current_info.csv", "r") as csvfile:
             reader = csv.DictReader(csvfile)
             places = []
