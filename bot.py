@@ -5,7 +5,6 @@ import logging
 import requests
 import datetime
 import csv
-import urllib
 import pyowm
 
 from setup import PROXY, TOKEN
@@ -21,6 +20,7 @@ logger = logging.getLogger(__name__)
 LOG_HISTORY = list()
 Location_Aspect = dict()
 
+# Декоратор для логгирования:
 def update_log(func):
     def new_func(*argc, **kwargs):
         if argc[0] and hasattr(argc[0], 'message') and hasattr(argc[0], 'effective_user'):
@@ -45,6 +45,7 @@ BUTTON8 = "CITY3"
 BUTTON9 = "DETAILED_INFO_ABOUT_WEATHER"
 BUTTON10 = "DOLLAR"
 BUTTON11 = "EVRO"
+
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -60,7 +61,7 @@ TITLES = {
     BUTTON11: "Евро €",
 }
 
-
+# Клавиатуры:
 def detailed_info_about_weather_keyboard():
     new_keyboard = [
         [InlineKeyboardButton(TITLES[BUTTON9], callback_data=BUTTON9)],
@@ -107,6 +108,124 @@ def aspect_keyboard():
     ]
     return InlineKeyboardMarkup(new_keyboard)
 
+# Define a few command handlers. These usually take the two arguments update and
+# context. Error handlers also receive the raised TelegramError object in error.
+
+@update_log
+def check_weather(update: Update, context: CallbackContext):
+    chat_id = update.message.chat_id
+    context.bot.send_message(
+        chat_id=chat_id,
+        text= "Выберете город! 👀",
+        reply_markup= city_keyboard(),
+    )
+@update_log
+def money(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    context.bot.send_message(
+        chat_id=chat_id,
+        text="Выберете валюту!",
+        reply_markup=money_keyboard(),
+    )
+
+# Когда мы вводим /corono_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клаву.
+# Дальше мы попадаем в keyboard_handler, смотреть выше
+@update_log
+def corono_stats(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    text = "Выберете местоположения вируса COVID-19 😈"
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=location_keyboard(),
+    )
+
+@update_log
+def start(update: Update, context: CallbackContext):
+    """Send a message when the command /start is issued."""
+    smile = u'\U0001F603'
+    update.message.reply_text(f"Привет, {update.effective_user.first_name} {smile}!")
+
+@update_log
+def chat_help(update: Update, context: CallbackContext):
+    """Send a message when the command /help is issued."""
+    tmp = ["Введи команду /start для начала.",
+           "Введите команду /history, чтобы увидеть последние 5 действий.",
+           "Введите команду /time, чтобы увидеть время, прошедшее с последнего вашего сообщения.",
+           "Введите команду /date, чтобы увидеть текущую дату и время.",
+           "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
+           "Введите команду /weather, чтобы проверить погоду.",
+           "Введите команду /check_exchange_rates, чтобы курс валют.",
+           "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
+    update.message.reply_text('\n'.join(tmp))
+
+@update_log
+def echo(update: Update, context: CallbackContext):
+    """Echo the user message."""
+    chat_id = update.message.chat_id
+    text = update.message.text
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+    )
+
+@update_log
+def error(update: Update, context: CallbackContext):
+    """Log Errors caused by Updates."""
+    logger.warning(f'Update {update} caused error {context.error}')
+
+@update_log
+def elapsed_time(update: Updater, context: CallbackContext):
+    user = update.effective_user.first_name
+    period = datetime.timedelta(0)
+    if len(LOG_HISTORY) > 1:
+        for i in range(len(LOG_HISTORY) - 2, -1, -1):
+            if LOG_HISTORY[i]["user"] == user:
+                time_delta = datetime.timedelta(hours=3, minutes=0, seconds=0)
+                period = LOG_HISTORY[i]["date"] + time_delta
+                period = datetime.datetime.now() - period
+                print(str(i) , str(period))
+                break
+    update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
+
+@update_log
+def date(update: Updater, context: CallbackContext):
+    now = datetime.datetime.now()
+    update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
+
+@update_log 
+def fact(update: Updater, context: CallbackContext):
+    r = requests.get("https://cat-fact.herokuapp.com/facts")
+    p = r.json()
+    all_posts = p["all"]
+    all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
+    update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
+
+
+@update_log
+def history(update: Updater, context: CallbackContext):
+    I_start, end = 0, 0
+    with open("history.txt", 'a') as handle:
+        if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
+            update.message.reply_text("There are no recent actions")
+            handle.write("There are no recent actions\n")
+        else:
+            answer = []
+            if len(LOG_HISTORY) < 5:
+                end = len(LOG_HISTORY)
+                answer.append("Last actions are:")
+            else:
+                I_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
+                answer.append("Last five actions are:")
+            for i in range(I_start, end):
+                answer.append(f"Action {i + 1}:")
+                for key, value in LOG_HISTORY[i].items():
+                    answer.append(key + " : " + str(value))
+                answer[len(answer) - 1] += '\n'
+            update.message.reply_text('\n'.join(answer))
+            handle.write('\n'.join(answer) + '\n')
+
+# Необходимые функции для команды /corono_stats
 # Скачиваем последний возможный файл с гитхаба и возвращаем часть ответного сообщения
 def download_actual_file():
     answer = list()
@@ -128,44 +247,43 @@ def download_actual_file():
             link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
             r = requests.get(link)
         answer.append(f"Информация на сегодня пока нет. Последние данные на {'/'.join(now)} о вирусе:")
-
     # Downloading current file
-    with open("current_info.csv", 'w') as csvfile:
+    with open("current_info.csv", 'w', encoding='utf-8') as csvfile:
         csvfile.writelines(r.text)
     return answer
+    #return answer
 
 # Получив местоположение и критерий, втаскиваем нужную информацию в ответное сообщение answer через буферный словарь Provinces
 def get_necessary_corona_info(location: str, aspect: str, answer: list):
     # Getting information
     with open("current_info.csv", 'r') as csvfile:
-        Provinces = dict()
+        places = list()
+        new_places = list()
+        buffer = list()
         reader = csv.DictReader(csvfile)
         # Append number of infected people in provinces
         for row in reader:
             if row[location]:
-                Provinces[row[location]] = row[aspect]
-                if len(Provinces) == 5:
-                    break
-        #Creating an answer
-        for key in Provinces.keys():
-            answer.append(key + ' : ' + Provinces[key])
+                pair = [
+                    row[location],
+                    int(row[aspect]),
+                ]
+                places.append(pair)
+        for el in places:
+            if el[0] not in buffer:
+                buffer.append(el[0])
+                new_places.append(el)
+            else:
+                for pair in new_places:
+                    if pair[0] == el[0]:
+                        pair[1] += el[1]
+                        break
+        new_places.sort(key=lambda target: target[1])
+        # Creating an answer
+        for i in range(5):
+            answer.append(new_places[len(new_places) - 1 - i][0] + " : " + str(new_places[len(new_places) - 1 - i][1]))
 
-@update_log
-def check_weather(update: Update, context: CallbackContext):
-    chat_id = update.message.chat_id
-    context.bot.send_message(
-        chat_id=chat_id,
-        text= "Выберете город! 👀",
-        reply_markup= city_keyboard(),
-    )
-@update_log
-def money(update: Updater, context: CallbackContext):
-    chat_id = update.message.chat_id
-    context.bot.send_message(
-        chat_id=chat_id,
-        text="Выберете валюту!",
-        reply_markup=money_keyboard(),
-    )
+# Необходимая функция для команды /know_money
 def get_money(name):
     my_xml = requests.get("https://www.cbr-xml-daily.ru/daily_json.js").json()
     countries = my_xml["Valute"]
@@ -175,10 +293,8 @@ def get_money(name):
         if all_feat['Name'] == name[:-2]:
             answer = f"стоимость {all_feat['Name']} сейчас {all_feat['Value']} ₽"
     return answer
-# Вся логика нажатий. При нажатие на первой клаве срабатывает первая ветка IF , вторая клава - ветка ELSE
-# Запоминаем location и aspect в глобальный дикт Location_Aspect Так, как при нажатие на первой клавиатуру все обновится,
-# И данные в локальных переменных умрут) В конце добавляем смайлик, вызываем get_necessary_corona_info и приводим answer
-# К красивому виду, добавив \n
+
+# Обработчик клавиатуры. Тут происходит вся логика после нажатий на клавиши:
 def keyboard_handler(update: Update, context: CallbackContext):
     query = update.callback_query
     data = query.data
@@ -186,10 +302,10 @@ def keyboard_handler(update: Update, context: CallbackContext):
     if data == BUTTON1 or data == BUTTON2:
         text = ""
         if data == BUTTON1:
-            Location_Aspect["location"] = "Province/State"
+            Location_Aspect["location"] = "Province_State"
             text = "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!"
         elif data == BUTTON2:
-            Location_Aspect["location"] = "Country/Region"
+            Location_Aspect["location"] = "Country_Region"
             text = "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"
         context.bot.send_message(
             chat_id=chat_id,
@@ -200,13 +316,13 @@ def keyboard_handler(update: Update, context: CallbackContext):
         smile = ""
         if data == BUTTON3:
             Location_Aspect["aspect"] = "Confirmed"
-            smile = u'\U0001F637'
+            smile = '😷🤒'
         elif data == BUTTON4:
             Location_Aspect["aspect"] = "Deaths"
-            smile = u'\U0001F635'
+            smile = '😵'
         elif data == BUTTON5:
             Location_Aspect["aspect"] = "Recovered"
-            smile = u'\U0001F607'
+            smile = '😇'
         answer = download_actual_file()
         answer.append(Location_Aspect["aspect"] + ':' + smile)
         get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
@@ -285,106 +401,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
             text=get_money(name),
         )
 
-
-
-    # Define a few command handlers. These usually take the two arguments update and
-    # context. Error handlers also receive the raised TelegramError object in error.
-# Когда мы вводим /corono_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клаву.
-# Дальше мы попадаем в keyboard_handler, смотреть выше
-def corono_stats(update: Updater, context: CallbackContext):
-    chat_id = update.message.chat_id
-    smile = u'\U0001F608'
-    text = "Выберете местоположения вируса COVID-19 " + smile
-    context.bot.send_message(
-        chat_id=chat_id,
-        text=text,
-        reply_markup=location_keyboard(),
-    )
-
-@update_log
-def start(update: Update, context: CallbackContext):
-    """Send a message when the command /start is issued."""
-    smile = u'\U0001F603'
-    update.message.reply_text(f"Привет, {update.effective_user.first_name} {smile}!")
-
-@update_log
-def chat_help(update: Update, context: CallbackContext):
-    """Send a message when the command /help is issued."""
-    tmp = ["Введи команду /start для начала.",
-           "Введите команду /history, чтобы увидеть последние 5 действий.",
-           "Введите команду /time, чтобы увидеть время, прошедшее с последнего вашего сообщения.",
-           "Введите команду /date, чтобы увидеть текущую дату и время.",
-           "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
-           "Введите команду /weather, чтобы проверить погоду.",
-           "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
-    update.message.reply_text('\n'.join(tmp))
-
-@update_log
-def echo(update: Update, context: CallbackContext):
-    """Echo the user message."""
-    chat_id = update.message.chat_id
-    text = update.message.text
-    context.bot.send_message(
-        chat_id=chat_id,
-        text=text,
-    )
-
-@update_log
-def error(update: Update, context: CallbackContext):
-    """Log Errors caused by Updates."""
-    logger.warning(f'Update {update} caused error {context.error}')
-
-@update_log
-def elapsed_time(update: Updater, context: CallbackContext):
-    user = update.effective_user.first_name
-    period = datetime.timedelta(0)
-    if len(LOG_HISTORY) > 1:
-        for i in range(len(LOG_HISTORY) - 2, -1, -1):
-            if LOG_HISTORY[i]["user"] == user:
-                time_delta = datetime.timedelta(hours=3, minutes=0, seconds=0)
-                period = LOG_HISTORY[i]["date"] + time_delta
-                period = datetime.datetime.now() - period
-                print(str(i) , str(period))
-                break
-    update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
-
-@update_log
-def date(update: Updater, context: CallbackContext):
-    now = datetime.datetime.now()
-    update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
-
-@update_log 
-def fact(update: Updater, context: CallbackContext):
-    r = requests.get("https://cat-fact.herokuapp.com/facts")
-    p = r.json()
-    all_posts = p["all"]
-    all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
-    update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
-
-
-@update_log
-def history(update: Updater, context: CallbackContext):
-    I_start, end = 0, 0
-    with open("history.txt", 'a') as handle:
-        if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
-            update.message.reply_text("There are no recent actions")
-            handle.write("There are no recent actions\n")
-        else:
-            answer = []
-            if len(LOG_HISTORY) < 5:
-                end = len(LOG_HISTORY)
-                answer.append("Last actions are:")
-            else:
-                I_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
-                answer.append("Last five actions are:")
-            for i in range(I_start, end):
-                answer.append(f"Action {i + 1}:")
-                for key, value in LOG_HISTORY[i].items():
-                    answer.append(key + " : " + str(value))
-                answer[len(answer) - 1] += '\n'
-            update.message.reply_text('\n'.join(answer))
-            handle.write('\n'.join(answer) + '\n')
-
+# Создание бота, объявление обработчиков, запуск бота:
 def main():
     bot = Bot(
         token=TOKEN,
@@ -401,7 +418,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('fact', fact))
     updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
     updater.dispatcher.add_handler(CommandHandler('corono_stats', corono_stats))
-    updater.dispatcher.add_handler(CommandHandler('know_money', money))
+    updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
     # on noncommand i.e message - echo the message on Telegram
