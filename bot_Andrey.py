@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import datetime
 
 from setup import PROXY, TOKEN
 from telegram import Bot, Update
@@ -23,6 +24,7 @@ def update_log(func):
                 "user" : argc[0].effective_user.first_name,
                 "function" : func.__name__,
                 "message" : argc[0].message.text,
+                "date": argc[0].message.date,
                 })
         return func(*argc, **kwargs)
     return new_func
@@ -38,7 +40,9 @@ def start(update: Update, context: CallbackContext):
 @update_log
 def chat_help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
-    update.message.reply_text('Введи команду /start для начала. ')
+    tmp = ["Введи команду /start для начала.",
+           "Введите команду /history, чтобы увидеть последние 5 действий."]
+    update.message.reply_text('\n'.join(tmp))
 
 @update_log
 def echo(update: Update, context: CallbackContext):
@@ -65,11 +69,30 @@ def history(update: Updater, context: CallbackContext):
             answer.append("Last five actions are:")
         for i in range(I_start, end):
             answer.append(f"Action {i + 1}:")
-            slovar = LOG_HISTORY[i]
-            for key, value in slovar.items():
+            for key, value in LOG_HISTORY[i].items():
                 answer.append(key + " : " + value)
+            answer[len(answer) - 1] += '\n'
         update.message.reply_text("\n".join(answer))
         handle.write("\n".join(answer))
+
+
+# Я записываю в user1 имя текущего пользователя. Затем avrTime присваиваю нулевое время.
+# Потом прохожусь пол LOG_HISTORY и когда нахожу нужный ключ "user" считаю время между сообщениями пользователя
+# и считаю количество таких сообщений. Потом делю avrTime на j и вывожу это юзеру.
+@update_log
+def response_time(update: Updater, context: CallbackContext):
+    user1 = update.effective_user.first_name
+    avrTime = datetime.timedelta(0)
+    j = 0  # счетчик количества сообщений от текущего пользователя (user1)
+    for i in range(1, len(LOG_HISTORY)):
+        for key in LOG_HISTORY[i].keys():
+            if key == "user" and LOG_HISTORY[i]["user"] == user1:  # проверяю, чтобы сообщение было от нужного пользователя
+                avrTime += LOG_HISTORY[i]["date"] - LOG_HISTORY[j]["date"]
+                j += 1
+    avrTime /= j
+
+    update.message.reply_text(f"Average response time = {round(avrTime, 2)}")
+
 
 
 def main():
@@ -83,6 +106,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('start', start))
     updater.dispatcher.add_handler(CommandHandler('help', chat_help))
     updater.dispatcher.add_handler(CommandHandler('history', history))
+    updater.dispatcher.add_handler(CommandHandler('time', response_time))
 
     # on noncommand i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))

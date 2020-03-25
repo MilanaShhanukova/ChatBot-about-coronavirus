@@ -1,1 +1,5 @@
 python-telegram-bot
+requests
+datetime
+csv
+pyowm
