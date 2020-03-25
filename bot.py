@@ -25,10 +25,10 @@ def update_log(func):
     def new_func(*argc, **kwargs):
         if argc[0] and hasattr(argc[0], 'message') and hasattr(argc[0], 'effective_user'):
             LOG_HISTORY.append({
-                "user" : argc[0].effective_user.first_name,
-                "function" : func.__name__,
-                "message" : argc[0].message.text,
-                "date": argc[0].message.date,
+                "пользоватль" : argc[0].effective_user.first_name,
+                "функция" : func.__name__,
+                "сообщение" : argc[0].message.text,
+                "дата": argc[0].message.date,
                 })
         return func(*argc, **kwargs)
     return new_func
@@ -149,7 +149,7 @@ def corono_stats(update: Updater, context: CallbackContext):
 def start(update: Update, context: CallbackContext):
     """Send a message when the command /start is issued."""
     smile = u'\U0001F603'
-    update.message.reply_text(f"Привет, {update.effective_user.first_name} {smile}!")
+    update.message.reply_text(f"Привет, {update.effective_user.first_name} {smile}!\nВведи команду /help, чтобы узнать о моих функциях")
 
 @update_log
 def chat_help(update: Update, context: CallbackContext):
@@ -163,7 +163,8 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /check_exchange_rates, чтобы курс валют.",
            "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
     update.message.reply_text('\n'.join(tmp))
-
+# При нажатии кнопки "Ввести название страны" срабатывает else и echo выводит не сообщение пользователя,
+# а информацию по конкретной стране
 @update_log
 def echo(update: Update, context: CallbackContext):
     """Echo the user message."""
@@ -174,6 +175,7 @@ def echo(update: Update, context: CallbackContext):
             chat_id=chat_id,
             text=text,
         )
+    #     Пользователь вводит название страны, информацию о которой он хочет узнать
     else:
         answer = download_actual_file()
         with open("current_info.csv", "r") as csvfile:
@@ -263,12 +265,12 @@ def history(update: Updater, context: CallbackContext):
             answer = []
             if len(LOG_HISTORY) < 5:
                 end = len(LOG_HISTORY)
-                answer.append("Last actions are:")
+                answer.append("Последние действия:")
             else:
                 I_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
-                answer.append("Last five actions are:")
+                answer.append("Последние пять действий:")
             for i in range(I_start, end):
-                answer.append(f"Action {i + 1}:")
+                answer.append(f"Действие {i + 1}:")
                 for key, value in LOG_HISTORY[i].items():
                     answer.append(key + " : " + str(value))
                 answer[len(answer) - 1] += '\n'
