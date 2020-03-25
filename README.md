@@ -23,7 +23,7 @@ ____
 ## What can WhyNot do for the authors? 
 
 * Get information about the time between the last message sent from the bot and our time when we get the message of a user. This function helps to understand how opened for communication with the bot our user. 
-* Get information abot the five last users, who were communicating with the bot
+* Get information about the five last users, who were communicating with the bot
 
 #### To make the process more convenient its available to choose a command: 
 			
