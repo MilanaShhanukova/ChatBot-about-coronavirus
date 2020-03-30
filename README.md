@@ -5,7 +5,7 @@ ____
 ## What can this bot do for a user? 
 
 * Give information about the weather in Moscow, Nizhny Novgorod and Saint Petersburg. It includes pressure, max., min., cf. temperature, humidity, wind speed, sunset and dawn time. Everything is implemented with the help of buttons under the bot's messages for more comfort. Moreover the bot can advise users how to dress for the current day.
-* Give a huge amount of information about the state of coronovirus. User can ask WhyNot about the quantity of dead, infected and recoveries by choosing Provinces/States, Countries/Districts to see the required statistics about the top 5 'biggest' countries. Users can also enter the name of the country to get information exactly about it. 
+* Give a huge amount of information about the state of coronovirus. User can ask WhyNot about the quantity of dead, infected, recoveries, ill right now and new infected by comparing the state yesterday and today by choosing Provinces/States, Countries/Districts to see the required statistics about the top 5 'biggest' countries. Users can also enter the name of the country to get information exactly about it. 
 * Give information about the dollar or euro rate for the current date. This function is implemented by buttons as others. 
 * Get user's favorite post on cat-fact.herokuapp.com.
 
@@ -30,5 +30,18 @@ ____
 - /elapsed_time - to get the time between messages 
 - /history - to get the history of users
 
+### How to install our chat_bot? 
 
+1. Set up Python environment
+2. Create virtual environment python -m venv venv
+3. Activate virtual environment and install requirements:
+	
+	venv\Scripts\activate - on Linux
+
+	venv\Scripts\activate.bat - on Windows
+
+4. pip install -r requirements.txt
+
+5. Execute python chat_bot_template.py
+Try your bot - find it in Telegram and press /start.
 
