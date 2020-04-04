@@ -6,9 +6,9 @@ class Calculator:
     def __init__(self):
         pass
     @staticmethod
-    def download_actual_file():
+    def download_actual_file(shift_date: int):
         answer = list()
-        now = datetime.datetime.today()
+        now = datetime.datetime.today() - datetime.timedelta(days=shift_date)
         now = now.strftime("%m/%d/%Y")
         now = now.split('/')
         link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
@@ -61,3 +61,37 @@ class Calculator:
             # Creating an answer
             for i in range(5):
                 answer.append(new_places[len(new_places) - 1 - i][0] + " : " + str(new_places[len(new_places) - 1 - i][1]))
+
+    @staticmethod
+    def get_dynamics_info(target_country: str, shift_date: int):
+        answer = Calculator.download_actual_file(shift_date)
+        with open("current_info.csv", "r") as csvfile:
+            reader = csv.DictReader(csvfile)
+            places = []
+            new_places = []
+            buffer = []
+            for row in reader:
+                el = [
+                    row["Country_Region"],
+                    int(row["Confirmed"]),
+                    int(row["Deaths"]),
+                    int(row["Recovered"]),
+                    int(row["Active"]),
+                ]
+                places.append(el)
+            for country in places:
+                if target_country == country[0]:
+                    for el in places:
+                        if el[0] not in buffer:
+                            buffer.append(el[0])
+                            new_places.append(el)
+                        else:
+                            for row in new_places:
+                                if row[0] == el[0]:
+                                    row[1] += el[1]
+                                    row[2] += el[2]
+                                    row[3] += el[3]
+                                    row[4] += el[4]
+                                    break
+                    return new_places
+
