@@ -15,7 +15,11 @@ logger = logging.getLogger(__name__)
 
 LOG_HISTORY = list()
 Location_Aspect = dict()
-Location_Aspect["Choose_country"] = False
+Options = dict()
+Options["Choose_country"] = False
+Options["Choose_country_for_search_statistics"] = False
+Options["Shift"] = 0
+
 # Декоратор для логгирования:
 def update_log(func):
     def new_func(*argc, **kwargs):
@@ -43,6 +47,10 @@ BUTTON10 = "DOLLAR"
 BUTTON11 = "EVRO"
 BUTTON12 = "CHOOSE_COUNTRY"
 BUTTON13 = "Active"
+BUTTON14 = "2_days"
+BUTTON15 = "7_days"
+BUTTON16 = "14_days"
+BUTTON17 = "dynamics"
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -58,9 +66,40 @@ TITLES = {
     BUTTON11: "Евро €",
     BUTTON12: "▶ Ввести название страны ◀",
     BUTTON13: "Зараженные на данный момент",
+    BUTTON14: "2 дня",
+    BUTTON15: "7 дней",
+    BUTTON16: "14 дней",
+    BUTTON17: "Отследить динамику распространения вируса",
 }
 
 # Клавиатуры:
+def corona__stats_keyboard():
+    new_keyboard = [
+        [
+            InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
+            InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON12], callback_data=BUTTON12),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
+
+def corona_stats_dynamics_keyboard():
+    new_keyboard = [
+        [
+            InlineKeyboardButton(TITLES[BUTTON14], callback_data=BUTTON14),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON15], callback_data=BUTTON15),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON16], callback_data=BUTTON16),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
 def detailed_info_about_weather_keyboard():
     new_keyboard = [
         [InlineKeyboardButton(TITLES[BUTTON9], callback_data=BUTTON9)],
@@ -76,17 +115,6 @@ def city_keyboard():
     return InlineKeyboardMarkup(new_keyboard)
 
 # Клава с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавы. Тут 1 строка
-def location_keyboard():
-    new_keyboard = [
-        [
-            InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
-            InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
-        ],
-        [
-            InlineKeyboardButton(TITLES[BUTTON12], callback_data=BUTTON12),
-        ]
-    ]
-    return InlineKeyboardMarkup(new_keyboard)
 
 def money_keyboard():
     new_keyboard = [
@@ -109,7 +137,7 @@ def aspect_keyboard():
         [
             InlineKeyboardButton(TITLES[BUTTON4], callback_data=BUTTON4),
             InlineKeyboardButton(TITLES[BUTTON5], callback_data=BUTTON5),
-        ]
+        ],
     ]
     return InlineKeyboardMarkup(new_keyboard)
 
@@ -136,13 +164,23 @@ def money(update: Updater, context: CallbackContext):
 # Когда мы вводим /corono_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клаву.
 # Дальше мы попадаем в keyboard_handler, смотреть выше
 @update_log
-def corono_stats(update: Updater, context: CallbackContext):
+def corona_stats(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
     text = "Выберете местоположения вируса COVID-19 😈"
     context.bot.send_message(
         chat_id=chat_id,
         text=text,
-        reply_markup=location_keyboard(),
+        reply_markup=corona__stats_keyboard(),
+    )
+
+@update_log
+def corona_stats_dynamics(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    text = "Динамика распространения вируса 🦠 за последние"
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=corona_stats_dynamics_keyboard(),
     )
 
 @update_log
@@ -161,65 +199,67 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
            "Введите команду /weather, чтобы проверить погоду.",
            "Введите команду /check_exchange_rates, чтобы курс валют.",
-           "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
+           "Введите команду /corona_stats, чтобы увидеть актуальную статистику по короновирусу.",
+           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."]
     update.message.reply_text('\n'.join(tmp))
+
+def to_fixed(numObj, digits=0):
+    return f"{numObj:.{digits}f}"
 
 @update_log
 def echo(update: Update, context: CallbackContext):
     """Echo the user message."""
-    if not Location_Aspect["Choose_country"]:
+    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"]):
         chat_id = update.message.chat_id
         text = update.message.text
         context.bot.send_message(
             chat_id=chat_id,
             text=text,
         )
-    else:
-        answer = Calculator.download_actual_file()
-        with open("current_info.csv", "r") as csvfile:
-            reader = csv.DictReader(csvfile)
-            places = []
-            new_places = []
-            buffer = []
-            for row in reader:
-                el = [
-                    row["Country_Region"],
-                    int(row["Confirmed"]),
-                    int(row["Deaths"]),
-                    int(row["Recovered"]),
-                    int(row["Active"]),
-                ]
-                places.append(el)
-            for country in places:
-                if update.message.text == country[0]:
-                    for el in places:
-                        if el[0] not in buffer:
-                            buffer.append(el[0])
-                            new_places.append(el)
-                        else:
-                            for row in new_places:
-                                if row[0] == el[0]:
-                                    row[1] += el[1]
-                                    row[2] += el[2]
-                                    row[3] += el[3]
-                                    row[4] += el[4]
-                                    break
-                    for row in new_places:
-                        if row[0] == update.message.text:
-                            chat_id = update.message.chat_id
-                            context.bot.send_message(
-                                chat_id=chat_id,
-                                text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇\nActive: {row[4]} 🤒"
-                            )
-                            break
-                    Location_Aspect["Choose_country"] = False
-                    return
+    elif Options["Choose_country"] or Options["Choose_country_for_search_statistics"]:
+        new_places = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=0)
+        if not new_places:
             chat_id = update.message.chat_id
             context.bot.send_message(
                 chat_id=chat_id,
                 text="Введите корректное название страны 😟",
             )
-
+            return
+        for row in new_places:
+            if row[0] == update.message.text and Options["Choose_country"]:
+                chat_id = update.message.chat_id
+                context.bot.send_message(
+                    chat_id=chat_id,
+                    text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇\nActive: {row[4]} 🤒"
+                )
+                break
+            elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
+                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=Options["Shift"])
+                for target_row in new_places_after_shift:
+                    if target_row[0] == update.message.text:
+                        chat_id = update.message.chat_id
+                        growth = {
+                            "Confirmed_growth": (row[1] - target_row[1]) / row[1] * 100,
+                            "Death_growth": (row[2] - target_row[2]) / row[2] * 100,
+                            "Recovered_growth": (row[3] - target_row[3]) / row[3] * 100,
+                            "Active_growth": (row[4] - target_row[4]) / row[4] * 100,
+                        }
+                        for key in growth.keys():
+                            if growth[key] > 0:
+                                growth[key] = '+' + to_fixed(abs(growth[key]), 2) + ' % ' + '↗'
+                            else:
+                                growth[key] = '-' + to_fixed(abs(growth[key]), 2) + ' % ' + '↘'
+                        context.bot.send_message(
+                            chat_id=chat_id,
+                            text=(f"Confirmed increase🤒: {row[1] - target_row[1]}, {growth['Confirmed_growth']}\n"
+                                  f"Death increase         😵: {row[2] - target_row[2]}, {growth['Death_growth']}\n"
+                                  f"Recovered increase😇: {row[3] - target_row[3]}, {growth['Recovered_growth']}\n"
+                                  f"Active increase         😷: {row[4] - target_row[4]}, {growth['Active_growth']}")
+                        )
+                        break
+        Options["Choose_country"] = False
+        Options["Choose_country_for_search_statistics"] = False
+        return
 
 @update_log
 def error(update: Update, context: CallbackContext):
@@ -307,7 +347,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
     elif data == BUTTON3 or data == BUTTON4 or data == BUTTON5 or data == BUTTON13:
         smile = { BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒'}
         Location_Aspect["aspect"] = data
-        answer = Calculator.download_actual_file()
+        answer = Calculator.download_actual_file(0)
         answer.append(Location_Aspect["aspect"] + ':' + smile[data])
         Calculator.get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
         context.bot.send_message(
@@ -387,7 +427,14 @@ def keyboard_handler(update: Update, context: CallbackContext):
             text=get_money(TITLES[data]),
         )
     elif data == BUTTON12:
-        Location_Aspect["Choose_country"] = True
+        Options["Choose_country"] = True
+    elif data == BUTTON14 or data == BUTTON15 or data == BUTTON16:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Введите название страны",
+        )
+        Options["Shift"] = int(data[:data.find("_")]) + 1
+        Options["Choose_country_for_search_statistics"] = True
 
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
@@ -405,7 +452,8 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('date', date))
     updater.dispatcher.add_handler(CommandHandler('fact', fact))
     updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
-    updater.dispatcher.add_handler(CommandHandler('corono_stats', corono_stats))
+    updater.dispatcher.add_handler(CommandHandler('corona_stats', corona_stats))
+    updater.dispatcher.add_handler(CommandHandler('corona_stats_dynamics', corona_stats_dynamics))
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
