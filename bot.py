@@ -6,7 +6,7 @@ from classes import Calculator
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
-
+from analyze import Statistics
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -19,6 +19,7 @@ Options = dict()
 Options["Choose_country"] = False
 Options["Choose_country_for_search_statistics"] = False
 Options["Shift"] = 0
+Options["location"] = " "
 
 # Декоратор для логгирования:
 def update_log(func):
@@ -51,6 +52,7 @@ BUTTON14 = "2_days"
 BUTTON15 = "7_days"
 BUTTON16 = "14_days"
 BUTTON17 = "dynamics"
+BUTTON18 = "graf_of_confirmed"
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -70,6 +72,7 @@ TITLES = {
     BUTTON15: "7 дней",
     BUTTON16: "14 дней",
     BUTTON17: "Отследить динамику распространения вируса",
+    BUTTON18: "Посмотреть график подтвержденных случаев"
 }
 
 # Клавиатуры:
@@ -121,6 +124,15 @@ def money_keyboard():
         [
         InlineKeyboardButton(TITLES[BUTTON10], callback_data=BUTTON10),
         InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
+
+#клава для просмотра графика
+def grafik_keyboard():
+    new_keyboard = [
+        [
+        InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18),
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
@@ -200,7 +212,8 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /weather, чтобы проверить погоду.",
            "Введите команду /check_exchange_rates, чтобы курс валют.",
            "Введите команду /corona_stats, чтобы увидеть актуальную статистику по короновирусу.",
-           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."]
+           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."
+           ]
     update.message.reply_text('\n'.join(tmp))
 
 def to_fixed(numObj, digits=0):
@@ -235,6 +248,7 @@ def echo(update: Update, context: CallbackContext):
                 break
             elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
                 new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=Options["Shift"])
+                Options["location"] = row[0]
                 for target_row in new_places_after_shift:
                     if target_row[0] == update.message.text:
                         chat_id = update.message.chat_id
@@ -254,8 +268,8 @@ def echo(update: Update, context: CallbackContext):
                             text=(f"Confirmed increase🤒: {row[1] - target_row[1]}, {growth['Confirmed_growth']}\n"
                                   f"Death increase         😵: {row[2] - target_row[2]}, {growth['Death_growth']}\n"
                                   f"Recovered increase😇: {row[3] - target_row[3]}, {growth['Recovered_growth']}\n"
-                                  f"Active increase         😷: {row[4] - target_row[4]}, {growth['Active_growth']}")
-                        )
+                                  f"Active increase         😷: {row[4] - target_row[4]}, {growth['Active_growth']}"),
+                            reply_markup=grafik_keyboard(),)
                         break
         Options["Choose_country"] = False
         Options["Choose_country_for_search_statistics"] = False
@@ -276,7 +290,7 @@ def elapsed_time(update: Updater, context: CallbackContext):
                 time_delta = datetime.timedelta(hours=3, minutes=0, seconds=0)
                 period = LOG_HISTORY[i]["date"] + time_delta
                 period = datetime.datetime.now() - period
-                print(str(i) , str(period))
+                print(str(i), str(period))
                 break
     update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
 
@@ -435,6 +449,14 @@ def keyboard_handler(update: Update, context: CallbackContext):
         )
         Options["Shift"] = int(data[:data.find("_")]) + 1
         Options["Choose_country_for_search_statistics"] = True
+    elif data == BUTTON18:
+        print(Options["location"])
+        Statistics.grafik_draw(Options["Shift"], Options["location"])
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("grafik.png", "rb")
+        )
+
 
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
