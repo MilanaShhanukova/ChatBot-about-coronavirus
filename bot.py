@@ -53,6 +53,8 @@ BUTTON15 = "7_days"
 BUTTON16 = "14_days"
 BUTTON17 = "dynamics"
 BUTTON18 = "graf_of_confirmed"
+BUTTON19 = "graf_of_deaths"
+BUTTON20 = "graf_of_recovered"
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -72,7 +74,9 @@ TITLES = {
     BUTTON15: "7 дней",
     BUTTON16: "14 дней",
     BUTTON17: "Отследить динамику распространения вируса",
-    BUTTON18: "Посмотреть график подтвержденных случаев"
+    BUTTON18: "Посмотреть график подтвержденных случаев",
+    BUTTON19: "Посмотреть график смертельных случаев",
+    BUTTON20: "Посмотреть график выздоровлений"
 }
 
 # Клавиатуры:
@@ -132,7 +136,13 @@ def money_keyboard():
 def grafik_keyboard():
     new_keyboard = [
         [
-        InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18),
+            InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19),
+        ],
+        [
+            InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20),
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
@@ -451,12 +461,31 @@ def keyboard_handler(update: Update, context: CallbackContext):
         Options["Choose_country_for_search_statistics"] = True
     elif data == BUTTON18:
         print(Options["location"])
-        Statistics.grafik_draw(Options["Shift"], Options["location"])
+        conf_file = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+        param_coordinate = f"confirmed"
+        Statistics.grafik_draw(Options["Shift"], Options["location"], conf_file, param_coordinate)
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("grafik.png", "rb"),
+        )
+    elif data == BUTTON19:
+        print(Options["location"])
+        conf_file = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
+        param_coordinate = f"deaths"
+        Statistics.grafik_draw(Options["Shift"], Options["location"], conf_file, param_coordinate)
         context.bot.send_photo(
             chat_id=chat_id,
             photo=open("grafik.png", "rb")
-        )
-
+            )
+    elif data == BUTTON20:
+        print(Options["location"])
+        conf_file = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv"
+        param_coordinate = f"recovered"
+        Statistics.grafik_draw(Options["Shift"], Options["location"], conf_file, param_coordinate)
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("grafik.png", "rb")
+            )
 
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
