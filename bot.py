@@ -53,8 +53,6 @@ BUTTON15 = "7_days"
 BUTTON16 = "14_days"
 BUTTON17 = "dynamics"
 BUTTON18 = "graf_of_confirmed"
-BUTTON19 = "graf_of_deaths"
-BUTTON20 = "graf_of_recovered"
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -74,9 +72,7 @@ TITLES = {
     BUTTON15: "7 дней",
     BUTTON16: "14 дней",
     BUTTON17: "Отследить динамику распространения вируса",
-    BUTTON18: "Посмотреть график подтвержденных случаев",
-    BUTTON19: "Посмотреть график смертельных случаев",
-    BUTTON20: "Посмотреть график выздоровлений"
+    BUTTON18: "Посмотреть график подтвержденных случаев"
 }
 
 # Клавиатуры:
@@ -136,13 +132,7 @@ def money_keyboard():
 def grafik_keyboard():
     new_keyboard = [
         [
-            InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18),
-        ],
-        [
-            InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19),
-        ],
-        [
-            InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20),
+        InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18),
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
@@ -262,11 +252,15 @@ def echo(update: Update, context: CallbackContext):
                 for target_row in new_places_after_shift:
                     if target_row[0] == update.message.text:
                         chat_id = update.message.chat_id
+                        value_1 = (row[1] - target_row[1]) / target_row[1] * 100 if target_row[1] else 0
+                        value_2 = (row[2] - target_row[2]) / target_row[2] * 100 if target_row[2] else 0
+                        value_3 = (row[3] - target_row[3]) / target_row[3] * 100 if target_row[3] else 0
+                        value_4 = (row[4] - target_row[4]) / target_row[4] * 100 if target_row[4] else 0
                         growth = {
-                            "Confirmed_growth": (row[1] - target_row[1]) / row[1] * 100,
-                            "Death_growth": (row[2] - target_row[2]) / row[2] * 100,
-                            "Recovered_growth": (row[3] - target_row[3]) / row[3] * 100,
-                            "Active_growth": (row[4] - target_row[4]) / row[4] * 100,
+                            "Confirmed_growth": value_1,
+                            "Death_growth": value_2,
+                            "Recovered_growth": value_3,
+                            "Active_growth": value_4,
                         }
                         for key in growth.keys():
                             if growth[key] > 0:
@@ -461,31 +455,12 @@ def keyboard_handler(update: Update, context: CallbackContext):
         Options["Choose_country_for_search_statistics"] = True
     elif data == BUTTON18:
         print(Options["location"])
-        conf_file = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
-        param_coordinate = f"confirmed"
-        Statistics.grafik_draw(Options["Shift"], Options["location"], conf_file, param_coordinate)
+        Statistics.grafik_draw(Options["Shift"], Options["location"])
         context.bot.send_photo(
             chat_id=chat_id,
-            photo=open("grafik.png", "rb"),
+            photo=open("grafik.png", "rb")
         )
-    elif data == BUTTON19:
-        print(Options["location"])
-        conf_file = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"
-        param_coordinate = f"deaths"
-        Statistics.grafik_draw(Options["Shift"], Options["location"], conf_file, param_coordinate)
-        context.bot.send_photo(
-            chat_id=chat_id,
-            photo=open("grafik.png", "rb")
-            )
-    elif data == BUTTON20:
-        print(Options["location"])
-        conf_file = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_recovered_global.csv"
-        param_coordinate = f"recovered"
-        Statistics.grafik_draw(Options["Shift"], Options["location"], conf_file, param_coordinate)
-        context.bot.send_photo(
-            chat_id=chat_id,
-            photo=open("grafik.png", "rb")
-            )
+
 
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
