@@ -11,10 +11,9 @@ class Statistics:
 
 
     @staticmethod
-    def data(shift: int, location: str):
+    def data(shift: int, location: str, file: str):
         now = datetime.datetime.today()
-        r = requests.get(
-            f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+        r = requests.get(file)
         now = now - datetime.timedelta(days=1)
         date = now - datetime.timedelta(days=shift)
         dates = []  # массив с датами до сегодня
@@ -46,10 +45,9 @@ class Statistics:
                 data_set.append(sum(value))
             print(data_set)
         return dates, data_set
-
     @staticmethod
-    def grafik_draw(shift: int, location: str):
-        dates, data_set = Statistics.data(shift, location)
+    def grafik_draw(shift: int, location: str, _file: str, _param_coordinate: str):
+        dates, data_set = Statistics.data(shift, location, _file)
         y = data_set
         # соответствующие значения оси Y
         x = dates
@@ -72,10 +70,11 @@ class Statistics:
         # название оси х
         plt.xlabel('days', fontsize=15)
         # имя оси Y
-        plt.ylabel('confirmed', fontsize=15)
+        plt.ylabel(_param_coordinate, fontsize=15)
 
         fig.set_figwidth(12)
         fig.set_figheight(8)
 
         plt.savefig('grafik')
         plt.clf()
+

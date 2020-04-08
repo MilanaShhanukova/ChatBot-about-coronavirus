@@ -252,11 +252,15 @@ def echo(update: Update, context: CallbackContext):
                 for target_row in new_places_after_shift:
                     if target_row[0] == update.message.text:
                         chat_id = update.message.chat_id
+                        value_1 = (row[1] - target_row[1]) / target_row[1] * 100 if target_row[1] else 0
+                        value_2 = (row[2] - target_row[2]) / target_row[2] * 100 if target_row[2] else 0
+                        value_3 = (row[3] - target_row[3]) / target_row[3] * 100 if target_row[3] else 0
+                        value_4 = (row[4] - target_row[4]) / target_row[4] * 100 if target_row[4] else 0
                         growth = {
-                            "Confirmed_growth": (row[1] - target_row[1]) / row[1] * 100,
-                            "Death_growth": (row[2] - target_row[2]) / row[2] * 100,
-                            "Recovered_growth": (row[3] - target_row[3]) / row[3] * 100,
-                            "Active_growth": (row[4] - target_row[4]) / row[4] * 100,
+                            "Confirmed_growth": value_1,
+                            "Death_growth": value_2,
+                            "Recovered_growth": value_3,
+                            "Active_growth": value_4,
                         }
                         for key in growth.keys():
                             if growth[key] > 0:
