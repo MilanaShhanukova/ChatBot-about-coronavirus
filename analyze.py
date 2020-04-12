@@ -78,3 +78,4 @@ class Statistics:
         plt.savefig('grafik')
         plt.clf()
 
+
