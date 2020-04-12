@@ -1,6 +1,7 @@
 python-telegram-bot
+python-telegram-bot[socks]
 requests
 datetime
-csv
-urllib
 pyowm
+matplotlib
+PySocks
