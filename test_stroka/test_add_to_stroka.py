@@ -4,10 +4,10 @@ import unittest
 
 class TestStroka(unittest.TestCase):
     def setUp(self):
-        self.stroka = Stroka()
+        self.stroka = Stroka("Hello")
 
     def tearDown(self):
-        self.stroka.strk = "Hello"
+        self.stroka.strk = ""
 
     def test_add_str(self):
         self.stroka.add(" World")
