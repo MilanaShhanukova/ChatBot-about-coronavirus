@@ -1,7 +1,7 @@
+import re
 class Stroka:
-
-    def __init__(self):
-        self.strk = "Hello"
+    def __init__(self, stroka):
+        self.strk = stroka
 
     def add(self, a): #добавление в строку элементов любого типа
         type_a = type(a)
@@ -22,15 +22,19 @@ class Stroka:
                     self.strk = self.strk + str(value)
 
     def change_length(self, i: int): #изменение длины строки
-        if type(i) == float or i == len(self.strk):
-            self.strk = self.strk
+        if type(i) == float:
+            raise TypeError
         else:
-            if i > len(self.strk):
+            if i < 0:
+                raise IndexError
+            elif i > len(self.strk):
                 self.strk = self.strk + (" " * (i - len(self.strk)))
             elif i < len(self.strk):
                 self.strk = self.strk[:i]
+            elif i == 0:
+                self.strk = ""
 
-    def change_stroka(self, index, podstroka):
+    def change_stroka(self, index, podstroka): #изменение "внутренности" строки
         if type(index) == int:
             if index > len(self.strk) or len(podstroka) > len(self.strk) - index:
                 self.strk = self.strk
@@ -40,6 +44,24 @@ class Stroka:
             for i in range(len(index) - 1):
                 if i < len(self.strk):
                     self.strk = self.strk[:index[i]] + podstroka[i] + self.strk[index[i] + 1:]
+
+    def format_stroka(self, type, delitel= " "): #изменение типа строки, в лист, в словарь и число
+        if type == "list":
+            self.strk = self.strk.split(delitel)
+        elif type == "dict":
+            self.strk = self.strk.split(delitel)
+            slovar_of_str = {}
+            for i in range(len(self.strk) - 1):
+                slovar_of_str[self.strk[i]] = i
+        elif type == "int":
+            if not self.strk.isdigit():
+                raise ValueError("Несоответствующее значение")
+            else:
+                self.strk = int(self.strk)
+
+    def match_stroka(self, str_for_match): #метчинг строки
+        return re.match(self.strk, str_for_match)
+
 
 
 
