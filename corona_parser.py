@@ -6,7 +6,6 @@ import csv
 URL = "https://coronavirus-monitor.info/"
 HEADERS = {'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 YaBrowser/20.3.1.195 Yowser/2.5 Safari/537.36', 'accept': '*/*'}
 
-
 class CoronaParser:
     TABLE = ""
     CONTENT = ""
@@ -39,19 +38,16 @@ class CoronaParser:
                     self.HEADERS[0]: div_data[0].get_text(),
                     self.HEADERS[1]: div_data[1].get_text(),
                     self.HEADERS[2]: div_data[2].get_text(),
-                    self.HEADERS[3]: div_data[3].get_text(),
-                }
+                    self.HEADERS[3]: div_data[3].get_text() }
                 writer.writerow(row)
 
-
-def get_html(url, params=None):
-    r = requests.get(url, headers=HEADERS, params=params)
+def get_html(url, params = None):
+    r = requests.get(url, headers = HEADERS, params = params)
     if r.status_code == 200:
         return r.text
     else:
         print("ERROR")
         return
-
 
 def parse():
     html = get_html(URL)

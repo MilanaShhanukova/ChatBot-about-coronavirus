@@ -9,11 +9,10 @@ class Statistics:
     def __init__(self):
         pass
 
-
     @staticmethod
-    def data(shift: int, location: str, file: str):
+    def data(shift: int, location: str):
         now = datetime.datetime.today()
-        r = requests.get(file)
+        r = requests.get("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
         now = now - datetime.timedelta(days=1)
         date = now - datetime.timedelta(days=shift)
         dates = []  # массив с датами до сегодня
@@ -23,15 +22,13 @@ class Statistics:
         with open("current_info.csv", encoding='utf-8') as now_data:
             reader = csv.DictReader(now_data)
             while date < now:
-                date_1 = date.strftime(
-                    "%m/%d/%Y")  # для поиска в таблице нужен другой формат даты, создаем его в этой переменной
+                date_1 = date.strftime("%m/%d/%Y")  # для поиска в таблице нужен другой формат даты, создаем его в этой переменной
                 date_1 = date_1.split('/')
                 for i in range(len(date_1) - 1):
                     date_1[i] = date_1[i].lstrip('0')
                     dat = "/".join(date_1)
                 dates.append(dat)
                 date = date + datetime.timedelta(days=1)
-
             info = {}
             for row in reader:
                 if row["Country/Region"] == location:
@@ -43,11 +40,11 @@ class Statistics:
                             info[d].append(int(row[d[0:-2]]))
             for data, value in info.items():
                 data_set.append(sum(value))
-            print(data_set)
         return dates, data_set
+
     @staticmethod
-    def grafik_draw(shift: int, location: str, _file: str, _param_coordinate: str):
-        dates, data_set = Statistics.data(shift, location, _file)
+    def graphic_draw(shift: int, location: str, _param_coordinate = "confirmed"):
+        dates, data_set = Statistics.data(shift, location)
         y = data_set
         # соответствующие значения оси Y
         x = dates
@@ -66,7 +63,6 @@ class Statistics:
         ax.grid(which='minor',
                 color='gray',
                 linestyle=':')
-
         # название оси х
         plt.xlabel('days', fontsize=15)
         # имя оси Y
@@ -75,6 +71,6 @@ class Statistics:
         fig.set_figwidth(12)
         fig.set_figheight(8)
 
-        plt.savefig('grafik')
+        plt.savefig('graphic')
         plt.clf()
 
