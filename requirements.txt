@@ -1,0 +1,6 @@
+python-telegram-bot
+requests
+datetime
+pyowm
+matplotlib
+bs4
