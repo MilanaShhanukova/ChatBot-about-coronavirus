@@ -1,0 +1,56 @@
+Action 1:
+user : Михаил
+function : echo
+message : Привет, бот
+
+Action 2:
+user : Михаил
+function : echo
+message : Привет, Милана
+
+Action 3:
+user : Михаил
+function : echo
+message : Привет, Андрей
+
+Action 4:
+user : Михаил
+function : chat_help
+message : /help
+
+Action 5:
+user : Михаил
+function : start
+message : /start
+
+Last five actions are:
+Action 1:
+user : Milana
+function : echo
+message : привет
+date : 2020-03-30 18:53:40
+
+Action 2:
+user : Milana
+function : start
+message : /start
+date : 2020-03-30 18:55:59
+
+Action 3:
+user : Milana
+function : chat_help
+message : /help
+date : 2020-03-30 18:56:07
+
+Action 4:
+user : Milana
+function : corono_stats
+message : /corono_stats
+date : 2020-03-30 18:56:11
+
+Action 5:
+user : Milana
+function : history
+message : /history
+date : 2020-03-30 18:56:59
+
