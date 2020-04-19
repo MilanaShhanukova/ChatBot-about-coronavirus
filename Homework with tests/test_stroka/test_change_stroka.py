@@ -1,8 +1,8 @@
-import unittest
+from unittest import TestCase
 from ChangeString import Stroka
 
 
-class TestStroka(unittest.TestCase):
+class TestStroka(TestCase):
 	def __init__(self):
 		self.stroka = ""
 		
