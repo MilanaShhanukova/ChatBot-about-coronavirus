@@ -3,6 +3,9 @@ from stroka_change import Stroka
 import unittest
 
 class TestStroka(unittest.TestCase):
+	def __init__(self):
+		self.stroka = ""
+		
     def setUp(self):
         self.stroka = Stroka()
 
