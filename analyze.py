@@ -24,8 +24,8 @@ class Statistics:
             reader = csv.DictReader(now_data)
             while date < now:
             	# для поиска в таблице нужен другой формат даты, создаем его в этой переменной
-                date_1 = date_1.split('/')
                 date_1 = date.strftime("%m/%d/%Y")
+                date_1 = date_1.split('/')
                 for i in range(len(date_1) - 1):
                     date_1[i] = date_1[i].lstrip('0')
                     dat = "/".join(date_1)

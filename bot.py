@@ -4,7 +4,7 @@ import csv
 import requests
 import logging
 import datetime
-import pyowm,
+import pyowm
 import corona_parser
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
