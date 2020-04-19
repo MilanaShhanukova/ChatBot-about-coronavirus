@@ -1,4 +1,4 @@
-from stroka_change import Stroka
+from ChangeString import Stroka
 
 import unittest
 
