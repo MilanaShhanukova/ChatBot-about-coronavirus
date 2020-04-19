@@ -12,7 +12,7 @@ class Calculator:
     @staticmethod
     def download_actual_file(shift_date: int):
         answer = list()
-        now = datetime.datetime.today() - datetime.timedelta(days = shift_date)
+        now = datetime.datetime.today() - datetime.timedelta(days=shift_date)
         now = now.strftime("%m/%d/%Y")
         now = now.split('/')
         link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/\
@@ -97,3 +97,4 @@ class Calculator:
                                     row[4] += el[4]
                                     break
                     return new_places
+                    

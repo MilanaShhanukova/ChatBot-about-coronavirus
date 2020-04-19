@@ -13,7 +13,7 @@ class Statistics:
     def data(shift: int, location: str):
         now = datetime.datetime.today()
         r = requests.get("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/\
-        	csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+        csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
         now = now - datetime.timedelta(days=1)
         date = now - datetime.timedelta(days=shift)
         dates = []  # массив с датами до сегодня
@@ -23,7 +23,7 @@ class Statistics:
         with open("current_info.csv", encoding='utf-8') as now_data:
             reader = csv.DictReader(now_data)
             while date < now:
-            	# для поиска в таблице нужен другой формат даты, создаем его в этой переменной
+            # для поиска в таблице нужен другой формат даты, создаем его в этой переменной
                 date_1 = date.strftime("%m/%d/%Y")
                 date_1 = date_1.split('/')
                 for i in range(len(date_1) - 1):
@@ -75,3 +75,4 @@ class Statistics:
 
         plt.savefig('graphic')
         plt.clf()
+        

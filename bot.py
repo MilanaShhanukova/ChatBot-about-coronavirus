@@ -110,16 +110,19 @@ def city_keyboard():
                     [InlineKeyboardButton(TITLES[BUTTON8], callback_data=BUTTON8)]]
     return InlineKeyboardMarkup(new_keyboard)
 
+
 # Клавиатура с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавиатуры
 def money_keyboard():
     new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON10], callback_data=BUTTON10),
                       InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11)]]
     return InlineKeyboardMarkup(new_keyboard)
 
+
 # Клавиатура для просмотра графика
 def graphic_keyboard():
     new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18)]]
     return InlineKeyboardMarkup(new_keyboard)
+
 
 # Клавиатура с выбором критерия для вывода
 def aspect_keyboard():
@@ -165,7 +168,8 @@ def corona_stats(update: Updater, context: CallbackContext):
 @update_log
 def corona_stats_in_russia(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
-    text = "Введите название субъекта РФ для получения текущей информации о вирусе\n (Субъект РФ - республика, край, область, город федерального значения, автономный округ)"
+    text = "Введите название субъекта РФ для получения текущей информации о вирусе\n \
+    (Субъект РФ - республика, край, область, город федерального значения, автономный округ)"
     Options["Corona_stats_in_russia"] = True
     context.bot.send_message(
         chat_id=chat_id,
@@ -227,7 +231,8 @@ def echo(update: Update, context: CallbackContext):
                 if row["Регион"] == location:
                     context.bot.send_message(
                         chat_id=chat_id,
-                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} 🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
+                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} \
+                        🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
                     Options["Corona_stats_in_russia"] = False
                     return
             context.bot.send_message(
@@ -248,7 +253,8 @@ def echo(update: Update, context: CallbackContext):
                     text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇\nActive: {row[4]} 🤒")
                 break
             elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
-                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=Options["Shift"])
+                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text,
+                    shift_date=Options["Shift"])
                 Options["location"] = row[0]
                 for target_row in new_places_after_shift:
                     if target_row[0] == update.message.text:
@@ -257,7 +263,7 @@ def echo(update: Update, context: CallbackContext):
                             "Confirmed_growth": (row[1] - target_row[1]) / target_row[1] * 100,
                             "Death_growth": (row[2] - target_row[2]) / target_row[2] * 100,
                             "Recovered_growth": (row[3] - target_row[3]) / target_row[3] * 100,
-                            "Active_growth": (row[4] - target_row[4]) / target_row[4] * 100 }
+                            "Active_growth": (row[4] - target_row[4]) / target_row[4] * 100}
                         for key in growth.keys():
                             if growth[key] > 0:
                                 growth[key] = '+' + to_fixed(abs(growth[key]), 2) + ' % ' + '↗'
@@ -293,7 +299,8 @@ def elapsed_time(update: Updater, context: CallbackContext):
                 period = LOG_HISTORY[i]["date"] + time_delta
                 period = datetime.datetime.now() - period
                 break
-    update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
+    update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} минут\
+        , {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
 
 
 @update_log
@@ -352,15 +359,15 @@ def keyboard_handler(update: Update, context: CallbackContext):
     data = query.data
     chat_id = update.effective_message.chat_id
     if data in (BUTTON1, BUTTON2):
-        text = { BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
-                 BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!" }
+        text = {BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
+                BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"}
         Location_Aspect["location"] = data
         context.bot.send_message(
             chat_id=chat_id,
             text=text[data],
             reply_markup=aspect_keyboard())
     elif data in (BUTTON3, BUTTON4, BUTTON5, BUTTON13):
-        smile = { BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒' }
+        smile = {BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒'}
         Location_Aspect["aspect"] = data
         answer = Calculator.download_actual_file(0)
         answer.append(Location_Aspect["aspect"] + ':' + smile[data])
@@ -376,7 +383,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
         w = observation.get_weather()
         status = w.get_detailed_status()
         temp = w.get_temperature('celsius')
-        kinds_of_weather = { "ясно": "☀\n", "облачно": "☁\n", "дождливо":"🌧\n", "other": "\n" }
+        kinds_of_weather = {"ясно": "☀\n", "облачно": "☁\n", "дождливо": "🌧\n", "other": "\n"}
         if status not in kinds_of_weather.keys():
             kind_of_weather = kinds_of_weather["other"]
         else:
@@ -428,7 +435,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
     elif data in BUTTON10:
         context.bot.send_message(
             chat_id=chat_id,
-            text = get_money(TITLES[data]))
+            text=get_money(TITLES[data]))
     elif data in BUTTON11:
         context.bot.send_message(
             chat_id=chat_id,
@@ -453,7 +460,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
 def main():
     bot = Bot(
         token=TOKEN,
-        base_url=PROXY) # delete it if connection via VPN
+        base_url=PROXY)  # delete it if connection via VPN
     updater = Updater(bot=bot, use_context=True)
 
     # on different commands - answer in Telegram
@@ -468,7 +475,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('corona_stats_in_russia', corona_stats_in_russia))
     updater.dispatcher.add_handler(CommandHandler('corona_stats_dynamics', corona_stats_dynamics))
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
-    updater.dispatcher.add_handler(CallbackQueryHandler(callback = keyboard_handler, pass_chat_data=True))
+    updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
     # on non-command i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
@@ -488,3 +495,4 @@ def main():
 if __name__ == '__main__':
     logger.info('Start Bot')
     main()
+    
