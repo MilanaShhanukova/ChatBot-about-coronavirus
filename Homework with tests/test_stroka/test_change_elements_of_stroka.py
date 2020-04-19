@@ -1,5 +1,7 @@
 import unittest
+
 from ChangeString import Stroka
+
 
 class TestStroka(unittest.TestCase):
     def setUp(self):
