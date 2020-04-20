@@ -4,7 +4,7 @@ from ChangeString import Stroka
 
 class TestStroka(unittest.TestCase):
 
-	def __init__(self):
+    def __init__(self):
         self.stroka = ""
         
     def setUp(self):
