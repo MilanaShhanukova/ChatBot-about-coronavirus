@@ -5,7 +5,7 @@ class Stroka:
 
     def __init__(self, stroka):
         self.strk = stroka
-    
+
     def add(self, a):  # добавление в строку элементов любого типа
         type_a = type(a)
         if type_a == str:
@@ -64,13 +64,3 @@ class Stroka:
 
     def match_stroka(self, str_for_match):  # метчинг строки
         return re.match(self.strk, str_for_match)
-
-
-
-
-
-
-
-
-
-

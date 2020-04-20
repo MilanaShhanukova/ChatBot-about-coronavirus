@@ -23,8 +23,7 @@ class Statistics:
         with open("current_info.csv", encoding='utf-8') as now_data:
             reader = csv.DictReader(now_data)
             while date < now:
-            	# для поиска в таблице нужен другой формат даты, создаем его в этой переменной
-                date_1 = date.strftime("%m/%d/%Y")
+                date_1 = date.strftime("%m/%d/%Y")  # для поиска в таблице нужен другой формат даты, создаем его тут
                 date_1 = date_1.split('/')
                 for i in range(len(date_1) - 1):
                     date_1[i] = date_1[i].lstrip('0')

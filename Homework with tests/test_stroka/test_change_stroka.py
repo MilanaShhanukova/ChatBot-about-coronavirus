@@ -6,7 +6,7 @@ class TestStroka(unittest.TestCase):
 
     def __init__(self):
         self.stroka = ""
-        
+
     def setUp(self):
         self.stroka = Stroka()
 

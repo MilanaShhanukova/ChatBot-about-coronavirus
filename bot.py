@@ -114,7 +114,7 @@ def city_keyboard():
 # Клавиатура с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавиатуры
 def money_keyboard():
     new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON10], callback_data=BUTTON10),
-                      InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11)]]
+                    InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11)]]
     return InlineKeyboardMarkup(new_keyboard)
 
 
