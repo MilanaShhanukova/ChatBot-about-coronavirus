@@ -280,13 +280,35 @@ def date(update: Updater, context: CallbackContext):
     now = datetime.datetime.now()
     update.message.reply_text(f"Дата: {now.day}.{now.month}.{now.year}\nВремя: {now.hour}:{now.minute}")
 
+def get_data_with_url(url: str):
+    try:
+        req = requests.get(url)
+        if req.ok: #проверка на успешное
+            return req.json()
+    except Exception as err:
+        print(f'Error occurred: {err}')
+
+def fact(url="URL"):
+    data = get_data_with_url(url)
+    if data is None:
+        return "We don't see cats, so cannot find the cutest("
+    all_posts = data["all"]
+    max_upvotes = 0
+    max_posts = []
+    for post in all_posts:
+        if post['upvotes'] >= max_upvotes:
+            max_upvotes = post['upvotes']
+            max_posts.append(post["text"])
+
+    if max_posts == [] or max_upvotes == 0:
+        return "It's impossible to find the most upvoted post, all are cute!"
+
+    return f"Самый залайканный пост это {', '.join(max_posts)}"
+
 @update_log
-def fact(update: Updater, context: CallbackContext):
-    r = requests.get("https://cat-fact.herokuapp.com/facts")
-    p = r.json()
-    all_posts = p["all"]
-    all_votes = [all_posts[i]["upvotes"] for i in range(len(all_posts) - 1)]
-    update.message.reply_text(f"Самый залайканный пост это { all_posts[all_votes.index(max(all_votes))]['text']}")
+def send_cat_fact(update: Updater, context: CallbackContext):
+    cat_post = fact("https://cat-fact.herokuapp.com/facts")
+    update.message.reply_text(cat_post)
 
 @update_log
 def history(update: Updater, context: CallbackContext):
@@ -313,13 +335,16 @@ def history(update: Updater, context: CallbackContext):
 
 # Необходимая функция для команды /check_exchange_rates
 def get_money(name):
-    my_xml = requests.get("https://www.cbr-xml-daily.ru/daily_json.js").json()
+    my_xml = get_data_with_url("https://www.cbr-xml-daily.ru/daily_json.js")
     countries = my_xml["Valute"]
-    answer = ""
+    answer = None
     for country, currency in countries.items():
-        if currency['Name'] == name[:-2]:
+        if currency['Name'] == name[:-2] and currency["Value"] != 0:
             answer = f"Стоимость {currency['Name']} сейчас {currency['Value']} ₽"
-    return answer
+            return answer
+
+    if answer is None:
+        return "Не было найдено информации по данной валюте"
 
 # Обработчик клавиатуры. Тут происходит вся логика после нажатий на клавиши:
 def keyboard_handler(update: Update, context: CallbackContext):
