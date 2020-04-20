@@ -3,12 +3,13 @@ from unittest import mock
 from unittest.mock import patch
 from bot import update_log, check_weather, get_money, fact, history, date, LOG_HISTORY
 
+
 @update_log
 def default_action(update):
     return None
 
-class TestAddActions(unittest.TestCase):
 
+class TestAddActions(unittest.TestCase):
     def setUp(self) -> None:
         self.update = mock.MagicMock()
 
@@ -22,16 +23,17 @@ class TestAddActions(unittest.TestCase):
         self.update.message.date = 0
 
         default_action(self.update)
-        self.assertEqual(LOG_HISTORY, [{"user" : "Person", "function" : "default_action", "message" : "i write a sms", "date" : 0}])
+        self.assertEqual(LOG_HISTORY, [{"user": "Person", "function": "default_action", "message": "i write a sms",
+        								"date": 0}])
 
     def test_no_message_attr(self):
-        self.update = mock.MagicMock(spec = ["effective_user"])
+        self.update = mock.MagicMock(spec=["effective_user"])
 
         default_action(self.update)
         self.assertEqual(LOG_HISTORY, [])
 
     def test_no_user_attr(self):
-        self.update = mock.MagicMock(spec = ["message"])
+        self.update = mock.MagicMock(spec=["message"])
 
         default_action(self.update)
         self.assertEqual(LOG_HISTORY, [])
@@ -47,15 +49,10 @@ class TestAddActions(unittest.TestCase):
             default_action()
 
     def test_no_date(self):
-        self.update = mock.MagicMock(spec = ["date"])
+        self.update = mock.MagicMock(spec=["date"])
 
         default_action(self.update)
         self.assertEqual(LOG_HISTORY, [])
-
-
-
-
-
 
 
 if __name__ == '__main__':

@@ -3,7 +3,8 @@ from ChangeString import Stroka
 
 
 class TestStroka(unittest.TestCase):
-    def __init__(self):
+
+	def __init__(self):
         self.stroka = ""
         
     def setUp(self):
@@ -23,6 +24,7 @@ class TestStroka(unittest.TestCase):
     def test_change_many_elements_(self):
         self.stroka.change_stroka(1, "yes")
         self.assertEqual(self.stroka.strk, "Hyeso")
+
 
 if __name__ == "__main__":
     unittest.main()

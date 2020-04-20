@@ -69,6 +69,7 @@ class Calculator:
     @staticmethod
     def get_dynamics_info(target_country: str, shift_date: int):
         answer = Calculator.download_actual_file(shift_date)
+        answer = []
         with open("current_info.csv", "r") as csv_file:
             reader = csv.DictReader(csv_file)
             places = []
@@ -97,4 +98,3 @@ class Calculator:
                                     row[4] += el[4]
                                     break
                     return new_places
-                    

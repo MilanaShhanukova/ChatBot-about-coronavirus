@@ -3,6 +3,7 @@ from ChangeString import Stroka
 
 
 class TestStroka(unittest.TestCase):
+
     def setUp(self):
         self.stroka = Stroka("Hi I am testing you")
 
@@ -23,6 +24,7 @@ class TestStroka(unittest.TestCase):
 
     def test_matching(self):
         self.assertIsNone(self.stroka.match_stroka("Not our string"))
+
 
 if __name__ == "__main__":
     unittest.main()

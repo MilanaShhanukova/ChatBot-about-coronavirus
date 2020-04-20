@@ -1,9 +1,12 @@
 import re
+
+
 class Stroka:
+
     def __init__(self, stroka):
         self.strk = stroka
-
-    def add(self, a): #добавление в строку элементов любого типа
+    
+    def add(self, a):  # добавление в строку элементов любого типа
         type_a = type(a)
         if type_a == str:
             self.strk = self.strk + a
@@ -21,7 +24,7 @@ class Stroka:
                 else:
                     self.strk = self.strk + str(value)
 
-    def change_length(self, i: int): #изменение длины строки
+    def change_length(self, i: int):  # изменение длины строки
         if type(i) == float:
             raise TypeError
         else:
@@ -34,7 +37,7 @@ class Stroka:
             elif i == 0:
                 self.strk = ""
 
-    def change_stroka(self, index, podstroka): #изменение "внутренности" строки
+    def change_stroka(self, index, podstroka):  # изменение "внутренности" строки
         if type(index) == int:
             if index > len(self.strk) or len(podstroka) > len(self.strk) - index:
                 self.strk = self.strk
@@ -45,7 +48,7 @@ class Stroka:
                 if i < len(self.strk):
                     self.strk = self.strk[:index[i]] + podstroka[i] + self.strk[index[i] + 1:]
 
-    def format_stroka(self, type, delitel= " "): #изменение типа строки, в лист, в словарь и число
+    def format_stroka(self, type, delitel=" "):  # изменение типа строки, в лист, в словарь и число
         if type == "list":
             self.strk = self.strk.split(delitel)
         elif type == "dict":
@@ -59,7 +62,7 @@ class Stroka:
             else:
                 self.strk = int(self.strk)
 
-    def match_stroka(self, str_for_match): #метчинг строки
+    def match_stroka(self, str_for_match):  # метчинг строки
         return re.match(self.strk, str_for_match)
 
 

@@ -254,7 +254,7 @@ def echo(update: Update, context: CallbackContext):
                 break
             elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
                 new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text,
-                    shift_date=Options["Shift"])
+                                                                      shift_date=Options["Shift"])
                 Options["location"] = row[0]
                 for target_row in new_places_after_shift:
                     if target_row[0] == update.message.text:
@@ -495,4 +495,3 @@ def main():
 if __name__ == '__main__':
     logger.info('Start Bot')
     main()
-    
