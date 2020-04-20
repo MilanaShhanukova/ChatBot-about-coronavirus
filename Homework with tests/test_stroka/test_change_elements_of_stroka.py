@@ -3,7 +3,7 @@ from ChangeString import Stroka
 
 
 class TestStroka(unittest.TestCase):
-	
+
     def setUp(self):
         self.stroka = Stroka("Hello")
 
