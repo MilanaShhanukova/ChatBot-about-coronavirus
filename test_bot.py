@@ -1,7 +1,7 @@
 import unittest
-import bot
 from unittest import mock
 from unittest.mock import patch
+
 from bot import update_log, get_money, fact,LOG_HISTORY, get_data_with_url
 
 

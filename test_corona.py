@@ -1,6 +1,6 @@
 import unittest
-import classes
 import datetime
+import classes
 import bot
 from unittest import mock
 from unittest.mock import patch
