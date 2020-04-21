@@ -218,7 +218,7 @@ def to_fixed(value: int, digits=0):
 @update_log
 def echo(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
-    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or 
+    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or
             Options["Corona_stats_in_russia"]):
         text = update.message.text
         context.bot.send_message(

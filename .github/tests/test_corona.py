@@ -18,7 +18,8 @@ class TestsDataParser(unittest.TestCase):
 
     def test_bad_request(self):
         date = (datetime.datetime.today() - datetime.timedelta(days=7)).strftime("%m/%d/%Y")
-        with patch("classes.Calculator.download_actual_file", return_value=[f"Информация на сегодня пока нет. Последние данные на {date} о вирусе:"]) as mock_get:
+        with patch("classes.Calculator.download_actual_file", return_value=[f"Информация на сегодня пока нет. \
+            Последние данные на {date} о вирусе:"]) as mock_get:
             info = mock_get(7)
         self.assertEqual(info[0], f"Информация на сегодня пока нет. Последние данные на {date} о вирусе:")
 
