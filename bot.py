@@ -1,12 +1,16 @@
 #!/usr/local/bin/python3
 # -*- coding: utf-8 -*-
-import logging, requests, datetime, csv, pyowm, classes, corona_parser
-from classes import Calculator
+
+import logging
+import requests
+import datetime
+import csv
+import pyowm
+
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
-from analyze import Statistics
-# import corona_parser
+
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -15,12 +19,6 @@ logger = logging.getLogger(__name__)
 
 LOG_HISTORY = list()
 Location_Aspect = dict()
-Options = dict()
-Options["Choose_country"] = False
-Options["Choose_country_for_search_statistics"] = False
-Options["Corona_stats_in_russia"] = False
-Options["Shift"] = 0
-Options["location"] = " "
 
 # Декоратор для логгирования:
 def update_log(func):
@@ -36,24 +34,18 @@ def update_log(func):
     return new_func
 
 # Идентификаторы
-BUTTON1 = "Province_State"
-BUTTON2 = "Country_Region"
-BUTTON3 = "Confirmed"
-BUTTON4 = "Deaths"
-BUTTON5 = "Recovered"
+BUTTON1 = "LOCATION_BUTTON_LEFT"
+BUTTON2 = "LOCATION_BUTTON_RIGHT"
+BUTTON3 = "ASPECT_BUTTON_TOP"
+BUTTON4 = "ASPECT_BUTTON_LEFT"
+BUTTON5 = "ASPECT_BUTTON_RIGHT"
 BUTTON6 = "CITY1"
 BUTTON7 = "CITY2"
 BUTTON8 = "CITY3"
 BUTTON9 = "DETAILED_INFO_ABOUT_WEATHER"
 BUTTON10 = "DOLLAR"
 BUTTON11 = "EVRO"
-BUTTON12 = "CHOOSE_COUNTRY"
-BUTTON13 = "Active"
-BUTTON14 = "2_days"
-BUTTON15 = "7_days"
-BUTTON16 = "14_days"
-BUTTON17 = "dynamics"
-BUTTON18 = "graf_of_confirmed"
+
 # Информация в кнопках
 TITLES = {
     BUTTON1: "Провинция/Штат",
@@ -67,43 +59,9 @@ TITLES = {
     BUTTON9: "▶ Узнать подробную информацию о погоде на сегодня ◀",
     BUTTON10: "Доллар США ＄",
     BUTTON11: "Евро €",
-    BUTTON12: "▶ Ввести название страны ◀",
-    BUTTON13: "Зараженные на данный момент",
-    BUTTON14: "2 дня",
-    BUTTON15: "7 дней",
-    BUTTON16: "14 дней",
-    BUTTON17: "Отследить динамику распространения вируса",
-    BUTTON18: "Посмотреть график подтвержденных случаев"
 }
 
 # Клавиатуры:
-def corona__stats_keyboard():
-    new_keyboard = [
-        [
-            InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
-            InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
-        ],
-        [
-            InlineKeyboardButton(TITLES[BUTTON12], callback_data=BUTTON12),
-        ]
-    ]
-    return InlineKeyboardMarkup(new_keyboard)
-
-
-def corona_stats_dynamics_keyboard():
-    new_keyboard = [
-        [
-            InlineKeyboardButton(TITLES[BUTTON14], callback_data=BUTTON14),
-        ],
-        [
-            InlineKeyboardButton(TITLES[BUTTON15], callback_data=BUTTON15),
-        ],
-        [
-            InlineKeyboardButton(TITLES[BUTTON16], callback_data=BUTTON16),
-        ]
-    ]
-    return InlineKeyboardMarkup(new_keyboard)
-
 def detailed_info_about_weather_keyboard():
     new_keyboard = [
         [InlineKeyboardButton(TITLES[BUTTON9], callback_data=BUTTON9)],
@@ -119,21 +77,20 @@ def city_keyboard():
     return InlineKeyboardMarkup(new_keyboard)
 
 # Клава с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавы. Тут 1 строка
+def location_keyboard():
+    new_keyboard = [
+        [
+        InlineKeyboardButton(TITLES[BUTTON1], callback_data=BUTTON1),
+        InlineKeyboardButton(TITLES[BUTTON2], callback_data=BUTTON2),
+        ]
+    ]
+    return InlineKeyboardMarkup(new_keyboard)
 
 def money_keyboard():
     new_keyboard = [
         [
         InlineKeyboardButton(TITLES[BUTTON10], callback_data=BUTTON10),
         InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11),
-        ]
-    ]
-    return InlineKeyboardMarkup(new_keyboard)
-
-#клава для просмотра графика
-def grafik_keyboard():
-    new_keyboard = [
-        [
-        InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18),
         ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
@@ -145,12 +102,9 @@ def aspect_keyboard():
             InlineKeyboardButton(TITLES[BUTTON3], callback_data=BUTTON3),
         ],
         [
-            InlineKeyboardButton(TITLES[BUTTON13], callback_data=BUTTON13),
-        ],
-        [
             InlineKeyboardButton(TITLES[BUTTON4], callback_data=BUTTON4),
             InlineKeyboardButton(TITLES[BUTTON5], callback_data=BUTTON5),
-        ],
+        ]
     ]
     return InlineKeyboardMarkup(new_keyboard)
 
@@ -177,34 +131,13 @@ def money(update: Updater, context: CallbackContext):
 # Когда мы вводим /corono_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клаву.
 # Дальше мы попадаем в keyboard_handler, смотреть выше
 @update_log
-def corona_stats(update: Updater, context: CallbackContext):
+def corono_stats(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
     text = "Выберете местоположения вируса COVID-19 😈"
     context.bot.send_message(
         chat_id=chat_id,
         text=text,
-        reply_markup=corona__stats_keyboard(),
-    )
-
-@update_log
-def corona_stats_in_russia(update: Updater, context: CallbackContext):
-    chat_id = update.message.chat_id
-    text = "Введите название субъекта РФ для получения текущей информации о вирусе\n(Субъект РФ - республика, край, область, город федерального значения, автономный округ)"
-    Options["Corona_stats_in_russia"] = True
-    context.bot.send_message(
-        chat_id=chat_id,
-        text=text,
-    )
-    corona_parser.parse()
-
-@update_log
-def corona_stats_dynamics(update: Updater, context: CallbackContext):
-    chat_id = update.message.chat_id
-    text = "Динамика распространения вируса 🦠 за последние"
-    context.bot.send_message(
-        chat_id=chat_id,
-        text=text,
-        reply_markup=corona_stats_dynamics_keyboard(),
+        reply_markup=location_keyboard(),
     )
 
 @update_log
@@ -223,84 +156,18 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /fact, чтобы увидеть самый залайканный пост на cat-fact.herokuapp.com",
            "Введите команду /weather, чтобы проверить погоду.",
            "Введите команду /check_exchange_rates, чтобы курс валют.",
-           "Введите команду /corona_stats, чтобы увидеть актуальную статистику по короновирусу.",
-           "Введите команду /corona_stats_in_russia, чтобы увидеть текущую информацию о короновирусе в России.",
-           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."
-           ]
+           "Введите команду /corono_stats, чтобы увидеть актуальную статистику по короновирусу."]
     update.message.reply_text('\n'.join(tmp))
-
-def to_fixed(numObj, digits=0):
-    return f"{numObj:.{digits}f}"
 
 @update_log
 def echo(update: Update, context: CallbackContext):
+    """Echo the user message."""
     chat_id = update.message.chat_id
-    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or Options["Corona_stats_in_russia"]):
-        text = update.message.text
-        context.bot.send_message(
-            chat_id=chat_id,
-            text=text,
-        )
-    elif Options["Corona_stats_in_russia"]:
-        location = update.message.text
-        with open("russian_data.csv", 'r', encoding='utf-8') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                if row["Регион"] == location:
-                    context.bot.send_message(
-                        chat_id=chat_id,
-                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} 🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵'
-                    )
-                    Options["Corona_stats_in_russia"] = False
-                    return
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="Введите корректное название города или области 😟",
-            )
-    elif Options["Choose_country"] or Options["Choose_country_for_search_statistics"]:
-        new_places = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=0)
-        if not new_places:
-            context.bot.send_message(
-                chat_id=chat_id,
-                text="Введите корректное название страны 😟",
-            )
-            return
-        for row in new_places:
-            if row[0] == update.message.text and Options["Choose_country"]:
-                chat_id = update.message.chat_id
-                context.bot.send_message(
-                    chat_id=chat_id,
-                    text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇\nActive: {row[4]} 🤒"
-                )
-                break
-            elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
-                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=Options["Shift"])
-                Options["location"] = row[0]
-                for target_row in new_places_after_shift:
-                    if target_row[0] == update.message.text:
-                        chat_id = update.message.chat_id
-                        growth = {
-                            "Confirmed_growth": (row[1] - target_row[1]) / target_row[1] * 100,
-                            "Death_growth": (row[2] - target_row[2]) / target_row[2] * 100,
-                            "Recovered_growth": (row[3] - target_row[3]) / target_row[3] * 100,
-                            "Active_growth": (row[4] - target_row[4]) / target_row[4] * 100,
-                        }
-                        for key in growth.keys():
-                            if growth[key] > 0:
-                                growth[key] = '+' + to_fixed(abs(growth[key]), 2) + ' % ' + '↗'
-                            else:
-                                growth[key] = '-' + to_fixed(abs(growth[key]), 2) + ' % ' + '↘'
-                        context.bot.send_message(
-                            chat_id=chat_id,
-                            text=(f"Confirmed increase🤒: {row[1] - target_row[1]}, {growth['Confirmed_growth']}\n"
-                                  f"Death increase         😵: {row[2] - target_row[2]}, {growth['Death_growth']}\n"
-                                  f"Recovered increase😇: {row[3] - target_row[3]}, {growth['Recovered_growth']}\n"
-                                  f"Active increase         😷: {row[4] - target_row[4]}, {growth['Active_growth']}"),
-                            reply_markup=grafik_keyboard(),)
-                        break
-        Options["Choose_country"] = False
-        Options["Choose_country_for_search_statistics"] = False
-        return
+    text = update.message.text
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+    )
 
 @update_log
 def error(update: Update, context: CallbackContext):
@@ -317,7 +184,7 @@ def elapsed_time(update: Updater, context: CallbackContext):
                 time_delta = datetime.timedelta(hours=3, minutes=0, seconds=0)
                 period = LOG_HISTORY[i]["date"] + time_delta
                 period = datetime.datetime.now() - period
-                print(str(i), str(period))
+                print(str(i) , str(period))
                 break
     update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
 
@@ -334,7 +201,7 @@ def send_cat_fact(update: Updater, context: CallbackContext):
 def get_data_with_url(url: str):
     try:
         req = requests.get(url)
-        if req.ok: #проверка на успешное
+        if req.ok:  # проверка на успешное
             return req.json()
     except Exception as err:
         print(f'Error occurred: {err}')
@@ -356,9 +223,10 @@ def fact(url="URL"):
 
     return f"Самый залайканный пост это {', '.join(max_posts)}"
 
+
 @update_log
 def history(update: Updater, context: CallbackContext):
-    i_start, end = 0, 0
+    I_start, end = 0, 0
     with open("history.txt", 'a') as handle:
         if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
             update.message.reply_text("There are no recent actions")
@@ -369,15 +237,73 @@ def history(update: Updater, context: CallbackContext):
                 end = len(LOG_HISTORY)
                 answer.append("Last actions are:")
             else:
-                i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
+                I_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
                 answer.append("Last five actions are:")
-            for i in range(i_start, end):
+            for i in range(I_start, end):
                 answer.append(f"Action {i + 1}:")
                 for key, value in LOG_HISTORY[i].items():
                     answer.append(key + " : " + str(value))
                 answer[len(answer) - 1] += '\n'
             update.message.reply_text('\n'.join(answer))
             handle.write('\n'.join(answer) + '\n')
+
+# Необходимые функции для команды /corono_stats
+# Скачиваем последний возможный файл с гитхаба и возвращаем часть ответного сообщения
+def download_actual_file():
+    answer = list()
+    now = datetime.datetime.today()
+    now = now.strftime("%m/%d/%Y")
+    now = now.split('/')
+    link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
+    r = requests.get(link)
+    if r.status_code == 200:
+        answer.append("Информация о вирусе на сегодня:")
+    # If there isn't information today, we will take the information for yesterday
+    else:
+        while not r.status_code == 200:
+            now[1] = int(now[1])
+            if now[1] <= 10:
+                now[1] = '0' + str(now[1] - 1)
+            else:
+                now[1] = str(now[1] - 1)
+            link = f"https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{now[0]}-{now[1]}-{now[2]}.csv"
+            r = requests.get(link)
+        answer.append(f"Информация на сегодня пока нет. Последние данные на {'/'.join(now)} о вирусе:")
+    # Downloading current file
+    with open("current_info.csv", 'w', encoding='utf-8') as csvfile:
+        csvfile.writelines(r.text)
+    return answer
+    #return answer
+
+# Получив местоположение и критерий, втаскиваем нужную информацию в ответное сообщение answer через буферный словарь Provinces
+def get_necessary_corona_info(location: str, aspect: str, answer: list):
+    # Getting information
+    with open("current_info.csv", 'r') as csvfile:
+        places = list()
+        new_places = list()
+        buffer = list()
+        reader = csv.DictReader(csvfile)
+        # Append number of infected people in provinces
+        for row in reader:
+            if row[location]:
+                pair = [
+                    row[location],
+                    int(row[aspect]),
+                ]
+                places.append(pair)
+        for el in places:
+            if el[0] not in buffer:
+                buffer.append(el[0])
+                new_places.append(el)
+            else:
+                for pair in new_places:
+                    if pair[0] == el[0]:
+                        pair[1] += el[1]
+                        break
+        new_places.sort(key=lambda target: target[1])
+        # Creating an answer
+        for i in range(5):
+            answer.append(new_places[len(new_places) - 1 - i][0] + " : " + str(new_places[len(new_places) - 1 - i][1]))
 
 # Необходимая функция для команды /check_exchange_rates
 def get_money(name):
@@ -398,26 +324,44 @@ def keyboard_handler(update: Update, context: CallbackContext):
     data = query.data
     chat_id = update.effective_message.chat_id
     if data == BUTTON1 or data == BUTTON2:
-        text = {BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
-                BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"}
-        Location_Aspect["location"] = data
+        text = ""
+        if data == BUTTON1:
+            Location_Aspect["location"] = "Province_State"
+            text = "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!"
+        elif data == BUTTON2:
+            Location_Aspect["location"] = "Country_Region"
+            text = "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"
         context.bot.send_message(
             chat_id=chat_id,
-            text=text[data],
+            text=text,
             reply_markup=aspect_keyboard(),
         )
-    elif data == BUTTON3 or data == BUTTON4 or data == BUTTON5 or data == BUTTON13:
-        smile = { BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒'}
-        Location_Aspect["aspect"] = data
-        answer = Calculator.download_actual_file(0)
-        answer.append(Location_Aspect["aspect"] + ':' + smile[data])
-        Calculator.get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
+    elif data == BUTTON3 or data == BUTTON4 or data == BUTTON5:
+        smile = ""
+        if data == BUTTON3:
+            Location_Aspect["aspect"] = "Confirmed"
+            smile = '😷🤒'
+        elif data == BUTTON4:
+            Location_Aspect["aspect"] = "Deaths"
+            smile = '😵'
+        elif data == BUTTON5:
+            Location_Aspect["aspect"] = "Recovered"
+            smile = '😇'
+        answer = download_actual_file()
+        answer.append(Location_Aspect["aspect"] + ':' + smile)
+        get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
         context.bot.send_message(
             chat_id=chat_id,
             text='\n'.join(answer),
         )
     elif data == BUTTON6 or data == BUTTON7 or data == BUTTON8:
-        place = TITLES[data]
+        place = ""
+        if data == BUTTON6:
+            place = TITLES[BUTTON6]
+        if data == BUTTON7:
+            place = TITLES[BUTTON7]
+        if data == BUTTON8:
+            place = TITLES[BUTTON8]
         Location_Aspect["CURRENT_CITY"] = place
         owm = pyowm.OWM('6d00d1d4e704068d70191bad2673e0cc', language="ru")
         observation = owm.weather_at_place(place)
@@ -479,32 +423,17 @@ def keyboard_handler(update: Update, context: CallbackContext):
             text=answer,
         )
     elif data == BUTTON10:
+        name = TITLES[BUTTON10]
         context.bot.send_message(
             chat_id=chat_id,
-            text=get_money(TITLES[data]),
+            text=get_money(name),
         )
     elif data == BUTTON11:
+        name = TITLES[BUTTON11]
         context.bot.send_message(
             chat_id=chat_id,
-            text=get_money(TITLES[data]),
+            text=get_money(name),
         )
-    elif data == BUTTON12:
-        Options["Choose_country"] = True
-    elif data == BUTTON14 or data == BUTTON15 or data == BUTTON16:
-        context.bot.send_message(
-            chat_id=chat_id,
-            text="Введите название страны",
-        )
-        Options["Shift"] = int(data[:data.find("_")]) + 1
-        Options["Choose_country_for_search_statistics"] = True
-    elif data == BUTTON18:
-        print(Options["location"])
-        Statistics.grafik_draw(Options["Shift"], Options["location"])
-        context.bot.send_photo(
-            chat_id=chat_id,
-            photo=open("grafik.png", "rb")
-        )
-
 
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
@@ -522,9 +451,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('date', date))
     updater.dispatcher.add_handler(CommandHandler('fact', send_cat_fact))
     updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
-    updater.dispatcher.add_handler(CommandHandler('corona_stats', corona_stats))
-    updater.dispatcher.add_handler(CommandHandler('corona_stats_in_russia', corona_stats_in_russia))
-    updater.dispatcher.add_handler(CommandHandler('corona_stats_dynamics', corona_stats_dynamics))
+    updater.dispatcher.add_handler(CommandHandler('corono_stats', corono_stats))
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
 
