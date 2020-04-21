@@ -5,7 +5,6 @@ import csv
 import logging
 import datetime
 import pyowm
-import classes
 import corona_parser
 from classes import Calculator
 from setup import PROXY, TOKEN
@@ -219,7 +218,8 @@ def to_fixed(value: int, digits=0):
 @update_log
 def echo(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
-    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or Options["Corona_stats_in_russia"]):
+    if not in (Options["Choose_country"], Options["Choose_country_for_search_statistics"],
+               Options["Corona_stats_in_russia"]):
         text = update.message.text
         context.bot.send_message(
             chat_id=chat_id,
@@ -232,7 +232,8 @@ def echo(update: Update, context: CallbackContext):
                 if row["Регион"] == location:
                     context.bot.send_message(
                         chat_id=chat_id,
-                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} 🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
+                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} \
+                        🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
                     Options["Corona_stats_in_russia"] = False
                     return
             context.bot.send_message(
@@ -253,7 +254,8 @@ def echo(update: Update, context: CallbackContext):
                     text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇\nActive: {row[4]} 🤒")
                 break
             elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
-                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=Options["Shift"])
+                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text,
+                                                                      shift_date=Options["Shift"])
                 Options["location"] = row[0]
                 for target_row in new_places_after_shift:
                     if target_row[0] == update.message.text:
@@ -262,7 +264,7 @@ def echo(update: Update, context: CallbackContext):
                             "Confirmed_growth": (row[1] - target_row[1]) / target_row[1] * 100,
                             "Death_growth": (row[2] - target_row[2]) / target_row[2] * 100,
                             "Recovered_growth": (row[3] - target_row[3]) / target_row[3] * 100,
-                            "Active_growth": (row[4] - target_row[4]) / target_row[4] * 100 }
+                            "Active_growth": (row[4] - target_row[4]) / target_row[4] * 100}
                         for key in growth.keys():
                             if growth[key] > 0:
                                 growth[key] = '+' + to_fixed(abs(growth[key]), 2) + ' % ' + '↗'
@@ -384,21 +386,21 @@ def keyboard_handler(update: Update, context: CallbackContext):
     data = query.data
     chat_id = update.effective_message.chat_id
     if data in (BUTTON1, BUTTON2):
-        text = { BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
-                 BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!" }
+        text = {BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
+                BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"}
         Location_Aspect["location"] = data
         context.bot.send_message(
             chat_id=chat_id,
             text=text[data],
             reply_markup=aspect_keyboard())
     elif data in (BUTTON3, BUTTON4, BUTTON5, BUTTON13):
-        smile = { BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒' }
+        smile = {BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒'}
         Location_Aspect["aspect"] = data
         answer = Calculator.download_actual_file(0)
         answer.append(Location_Aspect["aspect"] + ':' + smile[data])
         Calculator.get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
         context.bot.send_message(
-            chat_id = chat_id,
+            chat_id=chat_id,
             text='\n'.join(answer))
     elif data in (BUTTON6, BUTTON7, BUTTON8):
         place = TITLES[data]
@@ -408,7 +410,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
         w = observation.get_weather()
         status = w.get_detailed_status()
         temp = w.get_temperature('celsius')
-        kinds_of_weather = { "ясно": "☀\n", "облачно": "☁\n", "дождливо":"🌧\n", "other": "\n" }
+        kinds_of_weather = {"ясно": "☀\n", "облачно": "☁\n", "дождливо": "🌧\n", "other": "\n"}
         if status not in kinds_of_weather.keys():
             kind_of_weather = kinds_of_weather["other"]
         else:
