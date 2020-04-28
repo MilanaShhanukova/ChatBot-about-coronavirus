@@ -28,6 +28,7 @@ class Parser_CoronaVirus:
                 counter = 0
                 if req.ok:
                     self.answer.append("Информация о вирусе на сегодня:")
+                    break
                 else:
                     # если была введена больше ранняя дата
                     while not req.ok:
