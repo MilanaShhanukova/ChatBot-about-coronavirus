@@ -171,8 +171,7 @@ def corona_stats(update: Updater, context: CallbackContext):
 @update_log
 def corona_stats_in_russia(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
-    text = "Введите название субъекта РФ для получения текущей информации о вирусе\n (Субъект РФ - республика, край, \
-        область, город федерального значения, автономный округ)"
+    text = "Введите название субъекта РФ для получения текущей информации о вирусе\n (Субъект РФ - республика, край, область, город федерального значения, автономный округ)"
     Options["Corona_stats_in_russia"] = True
     context.bot.send_message(
         chat_id=chat_id,
@@ -234,8 +233,7 @@ def echo(update: Update, context: CallbackContext):
                 if row["Регион"] == location:
                     context.bot.send_message(
                         chat_id=chat_id,
-                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} \
-                            🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
+                        text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} 🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
                     Options["Corona_stats_in_russia"] = False
                     return
             context.bot.send_message(
@@ -244,8 +242,9 @@ def echo(update: Update, context: CallbackContext):
     elif Options["Choose_country"] or Options["Choose_country_for_search_statistics"]:
         chat_id = update.message.chat_id
         parser = Parser_CoronaVirus()
+        parser.write_data_corona()
         data = parser.get_dynamics_info(target_country=update.message.text)
-        if not data:
+        if not parser.found_data:
             context.bot.send_message(
                 chat_id=chat_id,
                 text="Введите корректное название страны 😟")
@@ -259,7 +258,16 @@ def echo(update: Update, context: CallbackContext):
         # Для корона динамикс
         else:
             parser.shift_date = Options["Shift"]
+            parser.write_data_corona()
             old_data = parser.get_dynamics_info(target_country=update.message.text)
+
+            # Проверка, на деление на ноль и сущетсвует ли вообще old_data
+            if not parser.found_data or not old_data["Confirmed"] or not old_data["Deaths"] or not old_data["Recovered"] or not old_data["Active"]:
+                context.bot.send_message(
+                    chat_id=chat_id,
+                    text="Данных на данный промежуток пока что не сущетсвует")
+                Options["Choose_country_for_search_statistics"] = False
+                return
             growth = {
                 "Confirmed_growth": (data["Confirmed"] - old_data["Confirmed"]) / old_data["Confirmed"] * 100,
                 "Death_growth": (data["Deaths"] - old_data["Deaths"]) / old_data["Deaths"] * 100,
@@ -332,7 +340,7 @@ def fact(url="URL"):
 
     if max_posts == [] or max_upvotes == 0:
         return "It's impossible to find the most upvoted post, all are cute!"
-    return f"Самый залайканный пост это {', '.join(max_posts)}"
+    return f"Самый залайканный пост - это: {', '.join(max_posts)}"
 
 
 @update_log
@@ -497,7 +505,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('history', history))
     updater.dispatcher.add_handler(CommandHandler('time', elapsed_time))
     updater.dispatcher.add_handler(CommandHandler('date', date))
-    updater.dispatcher.add_handler(CommandHandler('fact', fact))
+    updater.dispatcher.add_handler(CommandHandler('fact', send_cat_fact))
     updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
     updater.dispatcher.add_handler(CommandHandler('corona_stats', corona_stats))
     updater.dispatcher.add_handler(CommandHandler('corona_stats_in_russia', corona_stats_in_russia))
