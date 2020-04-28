@@ -6,11 +6,12 @@ import logging
 import datetime
 import pyowm
 import corona_parser
-from classes import Calculator
+from parser_corona_data import Parser_CoronaVirus
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
 from analyze import Statistics
+
 # import corona_parser
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -37,8 +38,9 @@ def update_log(func):
                 "function": func.__name__,
                 "message": argc[0].message.text,
                 "date": argc[0].message.date,
-                })
+            })
         return func(*argc, **kwargs)
+
     return new_func
 
 
@@ -115,7 +117,7 @@ def city_keyboard():
 # Клавиатура с выбором местоположения. В списке КАЖДЫЙ СПИСОК - ОДНА СТРОКА клавиатуры
 def money_keyboard():
     new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON10], callback_data=BUTTON10),
-                    InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11)]]
+                     InlineKeyboardButton(TITLES[BUTTON11], callback_data=BUTTON11)]]
     return InlineKeyboardMarkup(new_keyboard)
 
 
@@ -170,7 +172,7 @@ def corona_stats(update: Updater, context: CallbackContext):
 def corona_stats_in_russia(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
     text = "Введите название субъекта РФ для получения текущей информации о вирусе\n (Субъект РФ - республика, край, \
-    область, город федерального значения, автономный округ)"
+        область, город федерального значения, автономный округ)"
     Options["Corona_stats_in_russia"] = True
     context.bot.send_message(
         chat_id=chat_id,
@@ -233,53 +235,50 @@ def echo(update: Update, context: CallbackContext):
                     context.bot.send_message(
                         chat_id=chat_id,
                         text=f'Регион: {row["Регион"]}\nЗаражено: {row["Заражено"]} \
-                        🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
+                            🤒\nВылечено: {row["Вылечено"]} 😇\nПогибло: {row["Погибло"]} 😵')
                     Options["Corona_stats_in_russia"] = False
                     return
             context.bot.send_message(
                 chat_id=chat_id,
                 text="Введите корректное название города или области 😟")
     elif Options["Choose_country"] or Options["Choose_country_for_search_statistics"]:
-        new_places = Calculator.get_dynamics_info(target_country=update.message.text, shift_date=0)
-        if not new_places:
+        chat_id = update.message.chat_id
+        parser = Parser_CoronaVirus()
+        data = parser.get_dynamics_info(target_country=update.message.text)
+        if not data:
             context.bot.send_message(
                 chat_id=chat_id,
                 text="Введите корректное название страны 😟")
             return
-        for row in new_places:
-            if row[0] == update.message.text and Options["Choose_country"]:
-                chat_id = update.message.chat_id
-                context.bot.send_message(
-                    chat_id=chat_id,
-                    text=f"Confirmed: {row[1]} 😷🤒\nDeaths: {row[2]} 😵\nRecovered: {row[3]} 😇\nActive: {row[4]} 🤒")
-                break
-            elif row[0] == update.message.text and Options["Choose_country_for_search_statistics"]:
-                new_places_after_shift = Calculator.get_dynamics_info(target_country=update.message.text,
-                                                                      shift_date=Options["Shift"])
-                Options["location"] = row[0]
-                for target_row in new_places_after_shift:
-                    if target_row[0] == update.message.text:
-                        chat_id = update.message.chat_id
-                        growth = {
-                            "Confirmed_growth": (row[1] - target_row[1]) / target_row[1] * 100,
-                            "Death_growth": (row[2] - target_row[2]) / target_row[2] * 100,
-                            "Recovered_growth": (row[3] - target_row[3]) / target_row[3] * 100,
-                            "Active_growth": (row[4] - target_row[4]) / target_row[4] * 100}
-                        for key in growth.keys():
-                            if growth[key] > 0:
-                                growth[key] = '+' + to_fixed(abs(growth[key]), 2) + ' % ' + '↗'
-                            else:
-                                growth[key] = '-' + to_fixed(abs(growth[key]), 2) + ' % ' + '↘'
-                        context.bot.send_message(
-                            chat_id=chat_id,
-                            text=(f"Confirmed increase🤒: {row[1] - target_row[1]}, {growth['Confirmed_growth']}\n"
-                                  f"Death increase         😵: {row[2] - target_row[2]}, {growth['Death_growth']}\n"
-                                  f"Recovered increase😇: {row[3] - target_row[3]}, {growth['Recovered_growth']}\n"
-                                  f"Active increase         😷: {row[4] - target_row[4]}, {growth['Active_growth']}"),
-                            reply_markup=graphic_keyboard())
-                        break
-        Options["Choose_country"] = False
-        Options["Choose_country_for_search_statistics"] = False
+        # Для корона статс
+        if Options["Choose_country"]:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=f"Confirmed: {data['Confirmed']} 😷🤒\nDeaths: {data['Deaths']} 😵\nRecovered: {data['Recovered']} 😇\nActive: {data['Active']} 🤒")
+            Options["Choose_country"] = False
+        # Для корона динамикс
+        else:
+            parser.shift_date = Options["Shift"]
+            old_data = parser.get_dynamics_info(target_country=update.message.text)
+            growth = {
+                "Confirmed_growth": (data["Confirmed"] - old_data["Confirmed"]) / old_data["Confirmed"] * 100,
+                "Death_growth": (data["Deaths"] - old_data["Deaths"]) / old_data["Deaths"] * 100,
+                "Recovered_growth": (data["Recovered"] - old_data["Recovered"]) / old_data["Recovered"] * 100,
+                "Active_growth": (data["Active"] - old_data["Active"]) / old_data["Active"] * 100}
+            for key in growth.keys():
+                if growth[key] > 0:
+                    growth[key] = '+' + to_fixed(abs(growth[key]), 2) + ' % ' + '↗'
+                else:
+                    growth[key] = '-' + to_fixed(abs(growth[key]), 2) + ' % ' + '↘'
+            context.bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    f"Confirmed increase🤒: {data['Confirmed'] - old_data['Confirmed']}, {growth['Confirmed_growth']}\n"
+                    f"Death increase         😵: {data['Deaths'] - old_data['Deaths']}, {growth['Death_growth']}\n"
+                    f"Recovered increase😇: {data['Recovered'] - old_data['Recovered']}, {growth['Recovered_growth']}\n"
+                    f"Active increase         😷: {data['Active'] - old_data['Active']}, {growth['Active_growth']}"),
+                reply_markup=graphic_keyboard())
+            Options["Choose_country_for_search_statistics"] = False
         return
 
 
@@ -301,7 +300,7 @@ def elapsed_time(update: Updater, context: CallbackContext):
                 period = datetime.datetime.now() - period
                 break
     update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} \
-    минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
+        минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
 
 
 @update_log
@@ -386,8 +385,9 @@ def keyboard_handler(update: Update, context: CallbackContext):
     data = query.data
     chat_id = update.effective_message.chat_id
     if data in (BUTTON1, BUTTON2):
-        text = {BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
-                BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"}
+        text = {
+            BUTTON1: "Выберете критерий, по которому будет показан топ 5 провиниций/штатов с необходимой информацией!",
+            BUTTON2: "Выберете критерий, по которому будет показано топ 5 стран/регионов с необходимой информацией!"}
         Location_Aspect["location"] = data
         context.bot.send_message(
             chat_id=chat_id,
@@ -396,12 +396,13 @@ def keyboard_handler(update: Update, context: CallbackContext):
     elif data in (BUTTON3, BUTTON4, BUTTON5, BUTTON13):
         smile = {BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒'}
         Location_Aspect["aspect"] = data
-        answer = Calculator.download_actual_file(0)
-        answer.append(Location_Aspect["aspect"] + ':' + smile[data])
-        Calculator.get_necessary_corona_info(Location_Aspect["location"], Location_Aspect["aspect"], answer)
+        parser = Parser_CoronaVirus()
+        parser.write_data_corona()
+        parser.answer.append(Location_Aspect["aspect"] + ' ' + smile[data])
+        parser.find_top_five(Location_Aspect["location"], Location_Aspect["aspect"])
         context.bot.send_message(
             chat_id=chat_id,
-            text='\n'.join(answer))
+            text='\n'.join(parser.answer))
     elif data in (BUTTON6, BUTTON7, BUTTON8):
         place = TITLES[data]
         Location_Aspect["CURRENT_CITY"] = place
