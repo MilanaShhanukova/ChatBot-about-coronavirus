@@ -11,6 +11,7 @@ from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
 from analyze import Statistics
+import pymongo
 
 # import corona_parser
 # Enable logging
@@ -40,7 +41,6 @@ def update_log(func):
                 "date": argc[0].message.date,
             })
         return func(*argc, **kwargs)
-
     return new_func
 
 
@@ -244,6 +244,7 @@ def echo(update: Update, context: CallbackContext):
     elif Options["Choose_country"] or Options["Choose_country_for_search_statistics"]:
         chat_id = update.message.chat_id
         parser = Parser_CoronaVirus()
+        parser.write_data_corona()
         data = parser.get_dynamics_info(target_country=update.message.text)
         if not data:
             context.bot.send_message(
@@ -344,25 +345,26 @@ def send_cat_fact(update: Updater, context: CallbackContext):
 @update_log
 def history(update: Updater, context: CallbackContext):
     i_start, end = 0, 0
-    with open("history.txt", 'a') as handle:
-        if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
-            update.message.reply_text("There are no recent actions")
-            handle.write("There are no recent actions\n")
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client.mongo_bd
+    users = db.users_bot
+    if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
+        update.message.reply_text("There are no recent actions")
+    else:
+        answer = []
+        if len(LOG_HISTORY) < 5:
+            end = len(LOG_HISTORY)
+            answer.append("Last actions are:")
         else:
-            answer = []
-            if len(LOG_HISTORY) < 5:
-                end = len(LOG_HISTORY)
-                answer.append("Last actions are:")
-            else:
-                i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
-                answer.append("Last five actions are:")
-            for i in range(i_start, end):
-                answer.append(f"Action {i + 1}:")
-                for key, value in LOG_HISTORY[i].items():
-                    answer.append(key + " : " + str(value))
-                answer[len(answer) - 1] += '\n'
-            update.message.reply_text('\n'.join(answer))
-            handle.write('\n'.join(answer) + '\n')
+            i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
+            answer.append("Last five actions are:")
+        for i in range(i_start, end):
+            answer.append(f"Action {i + 1}:")
+            for key, value in LOG_HISTORY[i].items():
+                answer.append(key + " : " + str(value))
+            answer[len(answer) - 1] += '\n'
+        update.message.reply_text('\n'.join(answer))
+    users.insert_one(answer[1:])
 
 
 # Необходимая функция для команды /check_exchange_rates
@@ -497,7 +499,7 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('history', history))
     updater.dispatcher.add_handler(CommandHandler('time', elapsed_time))
     updater.dispatcher.add_handler(CommandHandler('date', date))
-    updater.dispatcher.add_handler(CommandHandler('fact', fact))
+    updater.dispatcher.add_handler(CommandHandler('fact', send_cat_fact))
     updater.dispatcher.add_handler(CommandHandler('weather', check_weather))
     updater.dispatcher.add_handler(CommandHandler('corona_stats', corona_stats))
     updater.dispatcher.add_handler(CommandHandler('corona_stats_in_russia', corona_stats_in_russia))
