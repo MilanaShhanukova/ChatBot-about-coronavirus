@@ -4,3 +4,5 @@ datetime
 pyowm
 matplotlib
 bs4
+pymongo
+mongomock
