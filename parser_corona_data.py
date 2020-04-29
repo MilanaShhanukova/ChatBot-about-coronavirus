@@ -4,9 +4,11 @@ import csv
 import pymongo
 from enum import Enum
 
+
 class options(Enum):
     ENTRY_EXISTS_IN_DB = 1
     NOT_INFO = 2
+
 
 class Parser_CoronaVirus:
 
@@ -118,7 +120,7 @@ class Parser_CoronaVirus:
         # Идем по странам в записи и выбираем из них необходимые по location и aspect
         data = self.find_target_countries_by_loc_and_asp(all_countries, location, aspect)
 
-        # Сортируем страны
+        # Сортируем страны, записываем ответ
         sorted_countries = self.sort_countries_by_aspect(data)
         for i in range(5):
             pair = sorted_countries[i]
@@ -134,7 +136,6 @@ class Parser_CoronaVirus:
 
         # Идем по бд, если наткнулись на текущую дату, берем список со странами (entry_value)
         entry_value = self.find_value_by_date("-".join(self.time))
-
         for country in entry_value:
             if country["Country_Region"] == target_country:
                 data["Confirmed"] += int(country["Confirmed"])

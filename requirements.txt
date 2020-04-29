@@ -1,5 +1,6 @@
 python-telegram-bot
 requests
 datetime
-csv
 pyowm
+matplotlib
+bs4
