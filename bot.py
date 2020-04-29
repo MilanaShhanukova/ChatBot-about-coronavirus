@@ -11,8 +11,6 @@ from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
 from analyze import Statistics
-import pymongo
-
 
 # import corona_parser
 # Enable logging
@@ -157,7 +155,7 @@ def money(update: Updater, context: CallbackContext):
         text="Выберете валюту!",
         reply_markup=money_keyboard())
 
-    
+
 # Когда мы вводим /corona_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клавиатуру
 # Далее мы попадаем в keyboard_handler
 @update_log
@@ -353,26 +351,25 @@ def send_cat_fact(update: Updater, context: CallbackContext):
 @update_log
 def history(update: Updater, context: CallbackContext):
     i_start, end = 0, 0
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client.mongo_bd
-    users = db.users_bot
-    if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
-        update.message.reply_text("There are no recent actions")
-    else:
-        answer = []
-        if len(LOG_HISTORY) < 5:
-            end = len(LOG_HISTORY)
-            answer.append("Last actions are:")
+    with open("history.txt", 'a') as handle:
+        if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
+            update.message.reply_text("There are no recent actions")
+            handle.write("There are no recent actions\n")
         else:
-            i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
-            answer.append("Last five actions are:")
-        for i in range(i_start, end):
-            answer.append(f"Action {i + 1}:")
-            for key, value in LOG_HISTORY[i].items():
-                answer.append(key + " : " + str(value))
-            answer[len(answer) - 1] += '\n'
-        update.message.reply_text('\n'.join(answer))
-    users.insert_one(answer[1:])
+            answer = []
+            if len(LOG_HISTORY) < 5:
+                end = len(LOG_HISTORY)
+                answer.append("Last actions are:")
+            else:
+                i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
+                answer.append("Last five actions are:")
+            for i in range(i_start, end):
+                answer.append(f"Action {i + 1}:")
+                for key, value in LOG_HISTORY[i].items():
+                    answer.append(key + " : " + str(value))
+                answer[len(answer) - 1] += '\n'
+            update.message.reply_text('\n'.join(answer))
+            handle.write('\n'.join(answer) + '\n')
 
 
 # Необходимая функция для команды /check_exchange_rates

@@ -4,11 +4,9 @@ import csv
 import pymongo
 from enum import Enum
 
-
 class options(Enum):
     ENTRY_EXISTS_IN_DB = 1
     NOT_INFO = 2
-
 
 class Parser_CoronaVirus:
 
@@ -31,6 +29,7 @@ class Parser_CoronaVirus:
         for entry in self.corona_collection.find():
             if "-".join(self.time) in entry.keys():
                 return options.ENTRY_EXISTS_IN_DB
+                #return 1
 
         # *** Если записи нет. Находим ближайшую дату ***
         url = f'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{self.time[0]}-{self.time[1]}-{self.time[2]}.csv'
@@ -95,7 +94,7 @@ class Parser_CoronaVirus:
 
     # Выбирает страны по локации и аспекту из списква всех стран
     @staticmethod
-    def find_target_countries_by_loc_and_asp(all_countries: dict, location: str, aspect: str):
+    def find_target_countries_by_loc_and_asp(all_countries: list, location: str, aspect: str):
         data = dict()
         for country in all_countries:
             if country[location] not in data.keys():
@@ -120,22 +119,20 @@ class Parser_CoronaVirus:
         # Идем по странам в записи и выбираем из них необходимые по location и aspect
         data = self.find_target_countries_by_loc_and_asp(all_countries, location, aspect)
 
-        # Сортируем страны, записываем ответ
+        # Сортируем страны
         sorted_countries = self.sort_countries_by_aspect(data)
         for i in range(5):
             pair = sorted_countries[i]
             self.answer.append(pair[0] + " : " + str(pair[1]))
 
-
-    def get_dynamics_info(self, target_country: str):
+    # **** GET_DYNAMICS_INFO****
+    # Находим информацию в бд по текущей стране
+    def get_info(self, entry_value: list, target_country:str):
         data = {
             "Confirmed": 0,
             "Deaths": 0,
             "Recovered": 0,
             "Active": 0}
-
-        # Идем по бд, если наткнулись на текущую дату, берем список со странами (entry_value)
-        entry_value = self.find_value_by_date("-".join(self.time))
         for country in entry_value:
             if country["Country_Region"] == target_country:
                 data["Confirmed"] += int(country["Confirmed"])
@@ -144,3 +141,8 @@ class Parser_CoronaVirus:
                 data["Active"] += int(country["Active"])
                 self.found_data = True
         return data
+
+    def get_dynamics_info(self, target_country: str):
+        # Идем по бд, если наткнулись на текущую дату, берем список со странами (entry_value)
+        entry_value = self.find_value_by_date("-".join(self.time))
+        return self.get_info(entry_value, target_country)
