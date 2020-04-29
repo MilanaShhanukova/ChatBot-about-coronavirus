@@ -4,9 +4,11 @@ import csv
 import pymongo
 from enum import Enum
 
+
 class options(Enum):
     ENTRY_EXISTS_IN_DB = 1
     NOT_INFO = 2
+
 
 class Parser_CoronaVirus:
 
