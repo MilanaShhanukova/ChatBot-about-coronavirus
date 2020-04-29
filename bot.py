@@ -13,6 +13,7 @@ from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, 
 from analyze import Statistics
 import pymongo
 
+
 # import corona_parser
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -41,6 +42,7 @@ def update_log(func):
                 "date": argc[0].message.date,
             })
         return func(*argc, **kwargs)
+
     return new_func
 
 
@@ -155,7 +157,7 @@ def money(update: Updater, context: CallbackContext):
         text="Выберете валюту!",
         reply_markup=money_keyboard())
 
-
+    
 # Когда мы вводим /corona_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клавиатуру
 # Далее мы попадаем в keyboard_handler
 @update_log
@@ -242,7 +244,7 @@ def echo(update: Update, context: CallbackContext):
     elif Options["Choose_country"] or Options["Choose_country_for_search_statistics"]:
         chat_id = update.message.chat_id
         parser = Parser_CoronaVirus()
-        parser.write_data_corona()
+        parser.find_actual_data()
         data = parser.get_dynamics_info(target_country=update.message.text)
         if not parser.found_data:
             context.bot.send_message(
@@ -257,8 +259,7 @@ def echo(update: Update, context: CallbackContext):
             Options["Choose_country"] = False
         # Для корона динамикс
         else:
-            parser.shift_date = Options["Shift"]
-            parser.write_data_corona()
+            parser.find_actual_data(Options["Shift"])
             old_data = parser.get_dynamics_info(target_country=update.message.text)
 
             # Проверка, на деление на ноль и сущетсвует ли вообще old_data
@@ -406,7 +407,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
         smile = {BUTTON3: '😷🤒', BUTTON4: '😵', BUTTON5: '😇', BUTTON13: '🤒'}
         Location_Aspect["aspect"] = data
         parser = Parser_CoronaVirus()
-        parser.write_data_corona()
+        parser.find_actual_data()
         parser.answer.append(Location_Aspect["aspect"] + ' ' + smile[data])
         parser.find_top_five(Location_Aspect["location"], Location_Aspect["aspect"])
         context.bot.send_message(
