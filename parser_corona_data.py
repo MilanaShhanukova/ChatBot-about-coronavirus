@@ -3,6 +3,8 @@ import datetime
 import csv
 import pymongo
 from enum import Enum
+from base_of_data import DataBase_for_bot
+
 
 class options(Enum):
     ENTRY_EXISTS_IN_DB = 1
@@ -10,14 +12,13 @@ class options(Enum):
 
 class Parser_CoronaVirus:
 
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client.mongo_bd
-    corona_collection = db.corona_data
     time = list()
+    base = DataBase_for_bot()
 
     def __init__(self):
         self.found_data = False
         self.answer = list()
+        self.corona_collection = self.base.corona_collection
 
     # **** WRITE_CORONA_DATA
     # Анализируя дата определяет, есть ли уже данные в дб, коректна ли дата. Если данных в дб еще нет, возвращает запрос
@@ -26,7 +27,8 @@ class Parser_CoronaVirus:
         date = datetime.datetime.today() - datetime.timedelta(days=shift_date)
         self.time = date.strftime('%m-%d-%Y').split('-')
         # Идем по бд, если запись по текущей дате присутствует, мы не будем ничего парсить
-        for entry in self.corona_collection.find():
+        findings = self.base.finding()
+        for entry in findings:
             if "-".join(self.time) in entry.keys():
                 return options.ENTRY_EXISTS_IN_DB
                 #return 1
@@ -81,13 +83,14 @@ class Parser_CoronaVirus:
         # Парсим и добавляем в бд
         else:
             current_data = self.write_data_corona(result)
-            self.corona_collection.insert_one(current_data)
+            self.base.inserting(current_data)
 
     # **** FIND_TOP_FIVE ****
     # Находит список стран по дате
     def find_value_by_date(self, date):
         # Идем по бд и ищем запись на заданное число
-        for entry in self.corona_collection.find():
+        findings = self.base.finding()
+        for entry in findings:
             if date in entry.keys():
                 all_countries = entry[date]
                 return all_countries
