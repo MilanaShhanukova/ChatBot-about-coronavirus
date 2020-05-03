@@ -10,7 +10,6 @@ from parser_corona_data import Parser_CoronaVirus
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
-from analyze import Statistics
 import graphic_draw
 
 # import corona_parser
