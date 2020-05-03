@@ -3,22 +3,23 @@ import datetime
 import csv
 import pymongo
 from enum import Enum
-from base_of_data import DataBase_for_bot
 
 
 class options(Enum):
     ENTRY_EXISTS_IN_DB = 1
     NOT_INFO = 2
 
+
 class Parser_CoronaVirus:
 
+    client = pymongo.MongoClient("localhost", 27017)
+    db = client.mongo_bd
+    corona_collection = db.corona_data
     time = list()
-    base = DataBase_for_bot()
 
     def __init__(self):
         self.found_data = False
         self.answer = list()
-        self.corona_collection = self.base.corona_collection
 
     # **** WRITE_CORONA_DATA
     # Анализируя дата определяет, есть ли уже данные в дб, коректна ли дата. Если данных в дб еще нет, возвращает запрос
@@ -27,11 +28,9 @@ class Parser_CoronaVirus:
         date = datetime.datetime.today() - datetime.timedelta(days=shift_date)
         self.time = date.strftime('%m-%d-%Y').split('-')
         # Идем по бд, если запись по текущей дате присутствует, мы не будем ничего парсить
-        findings = self.base.finding()
-        for entry in findings:
+        for entry in self.corona_collection.find():
             if "-".join(self.time) in entry.keys():
                 return options.ENTRY_EXISTS_IN_DB
-                #return 1
 
         # *** Если записи нет. Находим ближайшую дату ***
         url = f'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/{self.time[0]}-{self.time[1]}-{self.time[2]}.csv'
@@ -49,7 +48,7 @@ class Parser_CoronaVirus:
         return req
 
     # Достает данные по запросу
-    def write_data_corona(self, req):
+    def write_data_corona(self, req) -> dict:
         # Парсим текущее число, либо самую близкую к текущему числу запись
         if req.ok:
             with open("info.csv", "w", encoding='utf-8') as temp_data:
@@ -70,7 +69,7 @@ class Parser_CoronaVirus:
             return current_data
 
     # Находит данные о страных по числу
-    def find_actual_data(self, shift_date=0):
+    def find_actual_data(self, shift_date=0) -> None:
         result = self.find_suitable_date(shift_date)
         # Если слишком большая или неправильная дата
         if result == options.NOT_INFO:
@@ -82,70 +81,54 @@ class Parser_CoronaVirus:
             return
         # Парсим и добавляем в бд
         else:
-            current_data = self.write_data_corona(result)
-            self.base.inserting(current_data)
+            self.corona_collection.insert_one(self.write_data_corona(result))
 
     # **** FIND_TOP_FIVE ****
     # Находит список стран по дате
-    def find_value_by_date(self, date):
+    def find_value_by_date(self, date) -> list:
         # Идем по бд и ищем запись на заданное число
-        findings = self.base.finding()
-        for entry in findings:
-            if date in entry.keys():
-                all_countries = entry[date]
-                return all_countries
+        return [entry[date] for entry in self.corona_collection.find() if date in entry.keys()][0]
 
     # Выбирает страны по локации и аспекту из списква всех стран
     @staticmethod
-    def find_target_countries_by_loc_and_asp(all_countries: list, location: str, aspect: str):
+    def find_target_countries_by_loc_and_asp(all_countries: list, location: str, aspect: str) -> dict:
         data = dict()
         for country in all_countries:
-            if country[location] not in data.keys():
-                data[country[location]] = int(country[aspect])
-            else:
-                data[country[location]] += int(country[aspect])
+            data[country[location]] = data.get(country[location], 0) + int(country[aspect])
         return data
 
     # Сортирует выбранные страны в порядке возрастания
     @staticmethod
-    def sort_countries_by_aspect(data: dict):
+    def sort_countries_by_aspect(data: dict) -> list:
         # Сортируем страны
         temp = list(data.items())
         temp.sort(key=lambda value: value[1])
         return temp[::-1]
 
     # Находит пятерку стран по значению location и aspect
-    def find_top_five(self, location: str, aspect: str):
+    def find_top_five(self, location: str, aspect: str) -> None:
         # Достаем список со странами по дате из бд
         all_countries = self.find_value_by_date('-'.join(self.time))
-
         # Идем по странам в записи и выбираем из них необходимые по location и aspect
         data = self.find_target_countries_by_loc_and_asp(all_countries, location, aspect)
 
         # Сортируем страны
         sorted_countries = self.sort_countries_by_aspect(data)
-        for i in range(5):
-            pair = sorted_countries[i]
-            self.answer.append(pair[0] + " : " + str(pair[1]))
+        self.answer += [sorted_countries[i][0]  + " : " + str(sorted_countries[i][1]) for i in range(5)]
 
     # **** GET_DYNAMICS_INFO****
     # Находим информацию в бд по текущей стране
-    def get_info(self, entry_value: list, target_country:str):
-        data = {
-            "Confirmed": 0,
-            "Deaths": 0,
-            "Recovered": 0,
-            "Active": 0}
+    def get_info(self, entry_value: list, target_country:str) -> dict:
+        data = dict()
         for country in entry_value:
             if country["Country_Region"] == target_country:
-                data["Confirmed"] += int(country["Confirmed"])
-                data["Deaths"] += int(country["Deaths"])
-                data["Recovered"] += int(country["Recovered"])
-                data["Active"] += int(country["Active"])
+                data["Confirmed"] = data.get("Confirmed", 0) + int(country["Confirmed"])
+                data["Deaths"] = data.get("Deaths", 0) + int(country["Deaths"])
+                data["Recovered"] = data.get("Recovered", 0) + int(country["Recovered"])
+                data["Active"] = data.get("Active", 0) + int(country["Active"])
                 self.found_data = True
         return data
 
-    def get_dynamics_info(self, target_country: str):
-        # Идем по бд, если наткнулись на текущую дату, берем список со странами (entry_value)
-        entry_value = self.find_value_by_date("-".join(self.time))
-        return self.get_info(entry_value, target_country)
+    def get_dynamics_info(self, target_country: str) -> dict:
+        # Идем по бд, если наткнулись на текущую дату, берем список со странами (self.find_value_by_date(date)))
+        return self.get_info(self.find_value_by_date("-".join(self.time)), target_country)
