@@ -85,14 +85,14 @@ class TestsFact(unittest.TestCase):
         with patch('bot.get_data_with_url') as mock_data:
             mock_data.return_value = {'all': [{'upvotes': 1, 'text': 'text message'}]}
             most_upvoted = fact()
-        self.assertEqual(most_upvoted, 'Самый залайканный пост это text message')
+        self.assertEqual(most_upvoted, 'Самый залайканный пост - это: text message')
 
     def test_get_two_most_upvoted(self):
         with patch('bot.get_data_with_url') as mock_data:
             mock_data.return_value = {'all': [{'upvotes': 1, 'text': 'text message'}, {'upvotes': 1, 
                                       'text': 'text message_2'}]}
             most_upvoted = fact()
-        self.assertEqual(most_upvoted, 'Самый залайканный пост это text message, text message_2')
+        self.assertEqual(most_upvoted, 'Самый залайканный пост - это: text message, text message_2')
 
 
 class TestMoney(unittest.TestCase):

@@ -14,7 +14,7 @@ class TestAddActions(unittest.TestCase):
                                {"Province": "a", "Confirmed": 3},
                                {"Province": "d", "Confirmed": 4},
                                {"Province": "e", "Confirmed": 5}]
-        
+
         self.test_one_country = [{"Country_Region": "Russia", "Confirmed": 25, "Deaths": 32, "Recovered": 12, "Active": 2},
                                  {"Country_Region": "US", "Confirmed": 25, "Deaths": 32, "Recovered": 12, "Active": 2},
                                  {"Country_Region": "Russia", "Confirmed": 25, "Deaths": 20, "Recovered": 10, "Active": 0},
