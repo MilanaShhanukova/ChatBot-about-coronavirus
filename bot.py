@@ -11,6 +11,7 @@ from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
 from analyze import Statistics
+import graphic_draw
 
 # import corona_parser
 # Enable logging
@@ -62,7 +63,9 @@ BUTTON14 = "2_days"
 BUTTON15 = "7_days"
 BUTTON16 = "14_days"
 BUTTON17 = "dynamics"
-BUTTON18 = "graph_of_confirmed"
+BUTTON18 = "confirmed"
+BUTTON19 = "deaths"
+BUTTON20 = "recovered"
 
 # Информация в кнопках
 TITLES = {
@@ -83,7 +86,10 @@ TITLES = {
     BUTTON15: "7 дней",
     BUTTON16: "14 дней",
     BUTTON17: "Отследить динамику распространения вируса",
-    BUTTON18: "Посмотреть график подтвержденных случаев"
+    BUTTON18: "Посмотреть график подтвержденных случаев",
+    BUTTON19: "Посмотреть график умерших",
+    BUTTON20: "Посмотреть график выздоровевших"
+
 }
 
 
@@ -123,7 +129,9 @@ def money_keyboard():
 
 # Клавиатура для просмотра графика
 def graphic_keyboard():
-    new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18)]]
+    new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18)],
+                    [InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)],
+                    [InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20)]]
     return InlineKeyboardMarkup(new_keyboard)
 
 
@@ -485,11 +493,32 @@ def keyboard_handler(update: Update, context: CallbackContext):
         Options["Choose_country_for_search_statistics"] = True
     elif data in BUTTON18:
         print(Options["location"])
-        Statistics.graphic_draw(Options["Shift"], Options["location"])
+        Options["location"] = LOG_HISTORY[-1]["message"]
+        graph = graphic_draw.Statistics()
+        graph.create_graphic_information(Options["Shift"], Options["location"], "confirmed")
+        # Statistics.graphic_draw(Options["Shift"], Options["location"], "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("graphic.png", "rb"))
+    elif data in BUTTON19:
+        print(Options["location"])
+        Options["location"] = LOG_HISTORY[-1]["message"]
+        graph = graphic_draw.Statistics()
+        graph.create_graphic_information(Options["Shift"], Options["location"], "deaths")
+        # Statistics.graphic_draw(Options["Shift"], Options["location"], "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
         context.bot.send_photo(
             chat_id=chat_id,
             photo=open("graphic.png", "rb"))
 
+    elif data in BUTTON20:
+        print(Options["location"])
+        Options["location"] = LOG_HISTORY[-1]["message"]
+        graph = graphic_draw.Statistics()
+        graph.create_graphic_information(Options["Shift"], Options["location"], "recovered")
+        # Statistics.graphic_draw(Options["Shift"], Options["location"], "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("graphic.png", "rb"))
 
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
