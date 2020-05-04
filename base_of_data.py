@@ -1,6 +1,8 @@
 import pymongo
 
+
 class DataBase_for_bot:
+	
     def __init__(self):
         client = pymongo.MongoClient("localhost", 27017)
         db = client.mongo_bd
@@ -11,4 +13,3 @@ class DataBase_for_bot:
 
     def finding(self):
         return self.corona_collection.find()
-

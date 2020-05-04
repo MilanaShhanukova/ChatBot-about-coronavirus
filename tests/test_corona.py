@@ -1,6 +1,4 @@
 import unittest
-from unittest import mock
-from unittest.mock import patch
 from parser_corona_data import Parser_CoronaVirus, options
 import mongomock
 

@@ -2,7 +2,7 @@ import unittest
 from unittest import mock
 from unittest.mock import patch
 
-from bot import update_log, get_money, fact,LOG_HISTORY, get_data_with_url
+from bot import update_log, get_money, fact, LOG_HISTORY, get_data_with_url
 
 
 @update_log
@@ -89,7 +89,7 @@ class TestsFact(unittest.TestCase):
 
     def test_get_two_most_upvoted(self):
         with patch('bot.get_data_with_url') as mock_data:
-            mock_data.return_value = {'all': [{'upvotes': 1, 'text': 'text message'}, {'upvotes': 1, 
+            mock_data.return_value = {'all': [{'upvotes': 1, 'text': 'text message'}, {'upvotes': 1,
                                       'text': 'text message_2'}]}
             most_upvoted = fact()
         self.assertEqual(most_upvoted, 'Самый залайканный пост - это: text message, text message_2')

@@ -87,11 +87,7 @@ class Parser_CoronaVirus:
     # Находит список стран по дате
     def find_value_by_date(self, date) -> list:
         # Идем по бд и ищем запись на заданное число
-        all_countries = [entry[date] for entry in self.corona_collection.find() if date in entry.keys()]
-        if all_countries:
-            return all_countries[0]
-        else:
-            return None
+        return [entry[date] for entry in self.corona_collection.find() if date in entry.keys()][0]
 
     # Выбирает страны по локации и аспекту из списква всех стран
     @staticmethod
@@ -118,11 +114,11 @@ class Parser_CoronaVirus:
 
         # Сортируем страны
         sorted_countries = self.sort_countries_by_aspect(data)
-        self.answer += [sorted_countries[i][0]  + " : " + str(sorted_countries[i][1]) for i in range(5)]
+        self.answer += [sorted_countries[i][0] + " : " + str(sorted_countries[i][1]) for i in range(5)]
 
     # **** GET_DYNAMICS_INFO****
     # Находим информацию в бд по текущей стране
-    def get_info(self, entry_value: list, target_country:str) -> dict:
+    def get_info(self, entry_value: list, target_country: str) -> dict:
         data = dict()
         for country in entry_value:
             if country["Country_Region"] == target_country:

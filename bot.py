@@ -519,6 +519,7 @@ def keyboard_handler(update: Update, context: CallbackContext):
             chat_id=chat_id,
             photo=open("graphic.png", "rb"))
 
+
 # Создание бота, объявление обработчиков, запуск бота:
 def main():
     bot = Bot(
@@ -558,3 +559,4 @@ def main():
 if __name__ == '__main__':
     logger.info('Start Bot')
     main()
+    
