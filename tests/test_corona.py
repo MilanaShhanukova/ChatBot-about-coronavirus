@@ -20,9 +20,6 @@ class TestAddActions(unittest.TestCase):
                                  {"Country_Region": "Russia", "Confirmed": 25, "Deaths": 20, "Recovered": 10, "Active": 0},
                                  {"Country_Region": "Germany", "Confirmed": 25, "Deaths": 32, "Recovered": 12, "Active": 2}]
 
-    def tearDown(self) -> None:
-        self.data_parser.corona_collection.drop()
-
     # tests for find_suitable_date
     def test_find_existent_entry(self):
         self.data_parser.find_actual_data(10)
