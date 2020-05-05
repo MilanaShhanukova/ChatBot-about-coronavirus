@@ -66,7 +66,6 @@ BUTTON17 = "dynamics"
 BUTTON18 = "confirmed"
 BUTTON19 = "deaths"
 BUTTON20 = "recovered"
-#BUTTON19 = "video_about_corona"
 
 # Информация в кнопках
 TITLES = {
@@ -91,6 +90,7 @@ TITLES = {
     BUTTON19: "Посмотреть график умерших",
     BUTTON20: "Посмотреть график выздоровевших"
 }
+
 
 # Клавиатуры:
 def corona_stats_keyboard():
@@ -133,10 +133,6 @@ def graphic_keyboard():
                     [InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20)]]
     return InlineKeyboardMarkup(new_keyboard)
 
-# Клавиатура для отправки видео
-#def video_keyboard():
-    #new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)]]
-    #return InlineKeyboardMarkup(new_keyboard)
 
 # Клавиатура с выбором критерия для вывода
 def aspect_keyboard():
@@ -189,14 +185,16 @@ def corona_stats_in_russia(update: Updater, context: CallbackContext):
         text=text)
     corona_parser.parse()
 
+
 @update_log
 def corona_video(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
     text = "Видео о короновирусе"
     context.bot.send_message(
         chat_id=chat_id,
-        text=text,
-        reply_markup=video_keyboard())
+        text=text)
+#        reply_markup=video_keyboard())
+
 
 @update_log
 def corona_stats_dynamics(update: Updater, context: CallbackContext):
@@ -239,8 +237,7 @@ def to_fixed(value: int, digits=0):
 @update_log
 def echo(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
-    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or
-            Options["Corona_stats_in_russia"]):
+    if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or Options["Corona_stats_in_russia"]):
         text = update.message.text
         context.bot.send_message(
             chat_id=chat_id,
@@ -367,11 +364,13 @@ def send_cat_fact(update: Updater, context: CallbackContext):
     cat_post = fact("https://cat-fact.herokuapp.com/facts")
     update.message.reply_text(cat_post)
 
+
 @update_log
 def send_corona_video(update: Update, context: CallbackContext):
     video_sender = Video_Corona()
     video = video_sender.show_me_video()
     update.message.reply_text(video)
+
 
 @update_log
 def history(update: Updater, context: CallbackContext):
@@ -559,7 +558,6 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
     updater.dispatcher.add_handler(CommandHandler('corona_video', send_corona_video))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
-
 
     # on non-command i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
