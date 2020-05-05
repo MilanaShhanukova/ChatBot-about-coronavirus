@@ -10,6 +10,7 @@ from parser_corona_data import Parser_CoronaVirus
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
+from video_sending import Video_Corona
 import graphic_draw
 
 # import corona_parser
@@ -65,6 +66,7 @@ BUTTON17 = "dynamics"
 BUTTON18 = "confirmed"
 BUTTON19 = "deaths"
 BUTTON20 = "recovered"
+#BUTTON19 = "video_about_corona"
 
 # Информация в кнопках
 TITLES = {
@@ -88,9 +90,7 @@ TITLES = {
     BUTTON18: "Посмотреть график подтвержденных случаев",
     BUTTON19: "Посмотреть график умерших",
     BUTTON20: "Посмотреть график выздоровевших"
-
 }
-
 
 # Клавиатуры:
 def corona_stats_keyboard():
@@ -133,6 +133,10 @@ def graphic_keyboard():
                     [InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20)]]
     return InlineKeyboardMarkup(new_keyboard)
 
+# Клавиатура для отправки видео
+#def video_keyboard():
+    #new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)]]
+    #return InlineKeyboardMarkup(new_keyboard)
 
 # Клавиатура с выбором критерия для вывода
 def aspect_keyboard():
@@ -185,6 +189,14 @@ def corona_stats_in_russia(update: Updater, context: CallbackContext):
         text=text)
     corona_parser.parse()
 
+@update_log
+def corona_video(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    text = "Видео о короновирусе"
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=video_keyboard())
 
 @update_log
 def corona_stats_dynamics(update: Updater, context: CallbackContext):
@@ -215,7 +227,8 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /check_exchange_rates, чтобы курс валют.",
            "Введите команду /corona_stats, чтобы увидеть актуальную статистику по короновирусу.",
            "Введите команду /corona_stats_in_russia, чтобы увидеть текущую информацию о короновирусе в России.",
-           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."]
+           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса.",
+           "Введите команду /corona_video, чтобы увидеть полезное видео про короновирус"]
     update.message.reply_text('\n'.join(tmp))
 
 
@@ -354,6 +367,11 @@ def send_cat_fact(update: Updater, context: CallbackContext):
     cat_post = fact("https://cat-fact.herokuapp.com/facts")
     update.message.reply_text(cat_post)
 
+@update_log
+def send_corona_video(update: Update, context: CallbackContext):
+    video_sender = Video_Corona()
+    video = video_sender.show_me_video()
+    update.message.reply_text(video)
 
 @update_log
 def history(update: Updater, context: CallbackContext):
@@ -539,7 +557,9 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('corona_stats_in_russia', corona_stats_in_russia))
     updater.dispatcher.add_handler(CommandHandler('corona_stats_dynamics', corona_stats_dynamics))
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
+    updater.dispatcher.add_handler(CommandHandler('corona_video', send_corona_video))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
+
 
     # on non-command i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
