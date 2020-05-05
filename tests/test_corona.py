@@ -7,7 +7,7 @@ class TestAddActions(unittest.TestCase):
 
     def setUp(self) -> None:
         self.data_parser = Parser_CoronaVirus()
-        self.data_parser.client = mongomock.MongoClient("localhost", 27017)
+        self.data_parser.client = mongomock.MongoClient("127.0.0.1", 27017)
         self.test_countries = [{"Province": "a", "Confirmed": 1},
                                {"Province": "a", "Confirmed": 3},
                                {"Province": "d", "Confirmed": 4},
