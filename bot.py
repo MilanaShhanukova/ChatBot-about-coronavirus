@@ -10,9 +10,8 @@ from parser_corona_data import Parser_CoronaVirus
 from setup import PROXY, TOKEN
 from telegram import Bot, Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CallbackQueryHandler, CommandHandler, Filters, MessageHandler, Updater
-from analyze import Statistics
-import pymongo
-
+from video_sending import Video_Corona
+import graphic_draw
 
 # import corona_parser
 # Enable logging
@@ -27,6 +26,7 @@ Options = dict()
 Options["Choose_country"] = False
 Options["Choose_country_for_search_statistics"] = False
 Options["Corona_stats_in_russia"] = False
+Options["Choose_day"] = False
 Options["Shift"] = 0
 Options["location"] = " "
 
@@ -64,7 +64,10 @@ BUTTON14 = "2_days"
 BUTTON15 = "7_days"
 BUTTON16 = "14_days"
 BUTTON17 = "dynamics"
-BUTTON18 = "graph_of_confirmed"
+BUTTON18 = "confirmed"
+BUTTON19 = "deaths"
+BUTTON20 = "recovered"
+BUTTON21 = "number_of_days"
 
 # Информация в кнопках
 TITLES = {
@@ -85,9 +88,11 @@ TITLES = {
     BUTTON15: "7 дней",
     BUTTON16: "14 дней",
     BUTTON17: "Отследить динамику распространения вируса",
-    BUTTON18: "Посмотреть график подтвержденных случаев"
+    BUTTON18: "Посмотреть график подтвержденных случаев",
+    BUTTON19: "Посмотреть график умерших",
+    BUTTON20: "Посмотреть график выздоровевших",
+    BUTTON21: "Ввести количество дней"
 }
-
 
 # Клавиатуры:
 def corona_stats_keyboard():
@@ -100,7 +105,8 @@ def corona_stats_keyboard():
 def corona_stats_dynamics_keyboard():
     new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON14], callback_data=BUTTON14)],
                     [InlineKeyboardButton(TITLES[BUTTON15], callback_data=BUTTON15)],
-                    [InlineKeyboardButton(TITLES[BUTTON16], callback_data=BUTTON16)]]
+                    [InlineKeyboardButton(TITLES[BUTTON16], callback_data=BUTTON16)],
+                    [InlineKeyboardButton(TITLES[BUTTON21], callback_data=BUTTON21)]]
     return InlineKeyboardMarkup(new_keyboard)
 
 
@@ -125,9 +131,15 @@ def money_keyboard():
 
 # Клавиатура для просмотра графика
 def graphic_keyboard():
-    new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18)]]
+    new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON18], callback_data=BUTTON18)],
+                    [InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)],
+                    [InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20)]]
     return InlineKeyboardMarkup(new_keyboard)
 
+# Клавиатура для отправки видео
+#def video_keyboard():
+    #new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)]]
+    #return InlineKeyboardMarkup(new_keyboard)
 
 # Клавиатура с выбором критерия для вывода
 def aspect_keyboard():
@@ -157,7 +169,7 @@ def money(update: Updater, context: CallbackContext):
         text="Выберете валюту!",
         reply_markup=money_keyboard())
 
-    
+
 # Когда мы вводим /corona_stats, то эта функция выводит текствовое сообщение с запросом местоположения и клавиатуру
 # Далее мы попадаем в keyboard_handler
 @update_log
@@ -180,6 +192,14 @@ def corona_stats_in_russia(update: Updater, context: CallbackContext):
         text=text)
     corona_parser.parse()
 
+@update_log
+def corona_video(update: Updater, context: CallbackContext):
+    chat_id = update.message.chat_id
+    text = "Видео о короновирусе"
+    context.bot.send_message(
+        chat_id=chat_id,
+        text=text,
+        reply_markup=video_keyboard())
 
 @update_log
 def corona_stats_dynamics(update: Updater, context: CallbackContext):
@@ -210,7 +230,8 @@ def chat_help(update: Update, context: CallbackContext):
            "Введите команду /check_exchange_rates, чтобы курс валют.",
            "Введите команду /corona_stats, чтобы увидеть актуальную статистику по короновирусу.",
            "Введите команду /corona_stats_in_russia, чтобы увидеть текущую информацию о короновирусе в России.",
-           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."]
+           "Введите команду /corona_stats_dynamics, чтобы увидеть динамику распространения вируса."
+           "Введите команду /corona_video, чтобы увидеть полезное видео про короновирус"]
     update.message.reply_text('\n'.join(tmp))
 
 
@@ -222,11 +243,25 @@ def to_fixed(value: int, digits=0):
 def echo(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
     if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or
-            Options["Corona_stats_in_russia"]):
+            Options["Corona_stats_in_russia"] or Options["Choose_day"]):
         text = update.message.text
         context.bot.send_message(
             chat_id=chat_id,
             text=text)
+    elif Options["Choose_day"]:
+        try:
+            Options["Shift"] = int(update.message.text)
+        except Exception as e:
+            print(repr(e))
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="Введите корректное количество дней")
+            return
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Введите название страны")
+        Options["Choose_day"] = False
+        Options["Choose_country_for_search_statistics"] = True
     elif Options["Corona_stats_in_russia"]:
         location = update.message.text
         with open("russian_data.csv", 'r', encoding='utf-8') as file:
@@ -259,7 +294,18 @@ def echo(update: Update, context: CallbackContext):
             Options["Choose_country"] = False
         # Для корона динамикс
         else:
-            parser.find_actual_data(Options["Shift"])
+            # Проверка на правильное количество дней
+            try:
+                parser.find_actual_data(int(Options["Shift"]))
+            except Exception as e:
+                print(repr(e))
+                context.bot.send_message(
+                    chat_id=chat_id,
+                    text="Введите корректное количество дней")
+                Options["Choose_country_for_search_statistics"] = False
+                Options["Choose_day"] = True
+                return
+
             old_data = parser.get_dynamics_info(target_country=update.message.text)
 
             # Проверка, на деление на ноль и сущетсвует ли вообще old_data
@@ -268,6 +314,7 @@ def echo(update: Update, context: CallbackContext):
                     chat_id=chat_id,
                     text="Данных на данный промежуток пока что не сущетсвует")
                 Options["Choose_country_for_search_statistics"] = False
+                Options["Choose_country"] = False
                 return
             growth = {
                 "Confirmed_growth": (data["Confirmed"] - old_data["Confirmed"]) / old_data["Confirmed"] * 100,
@@ -349,30 +396,34 @@ def send_cat_fact(update: Updater, context: CallbackContext):
     cat_post = fact("https://cat-fact.herokuapp.com/facts")
     update.message.reply_text(cat_post)
 
+@update_log
+def send_corona_video(update: Update, context: CallbackContext):
+    video_sender = Video_Corona()
+    video = video_sender.show_me_video()
+    update.message.reply_text(video)
 
 @update_log
 def history(update: Updater, context: CallbackContext):
     i_start, end = 0, 0
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client.mongo_bd
-    users = db.users_bot
-    if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
-        update.message.reply_text("There are no recent actions")
-    else:
-        answer = []
-        if len(LOG_HISTORY) < 5:
-            end = len(LOG_HISTORY)
-            answer.append("Last actions are:")
+    with open("history.txt", 'a') as handle:
+        if len(LOG_HISTORY) == 1 and LOG_HISTORY[0]["function"] == "history":
+            update.message.reply_text("There are no recent actions")
+            handle.write("There are no recent actions\n")
         else:
-            i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
-            answer.append("Last five actions are:")
-        for i in range(i_start, end):
-            answer.append(f"Action {i + 1}:")
-            for key, value in LOG_HISTORY[i].items():
-                answer.append(key + " : " + str(value))
-            answer[len(answer) - 1] += '\n'
-        update.message.reply_text('\n'.join(answer))
-    users.insert_one(answer[1:])
+            answer = []
+            if len(LOG_HISTORY) < 5:
+                end = len(LOG_HISTORY)
+                answer.append("Last actions are:")
+            else:
+                i_start, end = len(LOG_HISTORY) - 5, len(LOG_HISTORY)
+                answer.append("Last five actions are:")
+            for i in range(i_start, end):
+                answer.append(f"Action {i + 1}:")
+                for key, value in LOG_HISTORY[i].items():
+                    answer.append(key + " : " + str(value))
+                answer[len(answer) - 1] += '\n'
+            update.message.reply_text('\n'.join(answer))
+            handle.write('\n'.join(answer) + '\n')
 
 
 # Необходимая функция для команды /check_exchange_rates
@@ -486,9 +537,34 @@ def keyboard_handler(update: Update, context: CallbackContext):
             text="Введите название страны")
         Options["Shift"] = int(data[:data.find("_")]) + 1
         Options["Choose_country_for_search_statistics"] = True
+    elif data == BUTTON21:
+        # Если мы нажали на кнопку с выбором дня
+        Options["Choose_day"] = True
     elif data in BUTTON18:
         print(Options["location"])
-        Statistics.graphic_draw(Options["Shift"], Options["location"])
+        Options["location"] = LOG_HISTORY[-1]["message"]
+        graph = graphic_draw.Statistics()
+        graph.create_graphic_information(Options["Shift"], Options["location"], "confirmed")
+        # Statistics.graphic_draw(Options["Shift"], Options["location"], "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("graphic.png", "rb"))
+    elif data in BUTTON19:
+        print(Options["location"])
+        Options["location"] = LOG_HISTORY[-1]["message"]
+        graph = graphic_draw.Statistics()
+        graph.create_graphic_information(Options["Shift"], Options["location"], "deaths")
+        # Statistics.graphic_draw(Options["Shift"], Options["location"], "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+        context.bot.send_photo(
+            chat_id=chat_id,
+            photo=open("graphic.png", "rb"))
+
+    elif data in BUTTON20:
+        print(Options["location"])
+        Options["location"] = LOG_HISTORY[-1]["message"]
+        graph = graphic_draw.Statistics()
+        graph.create_graphic_information(Options["Shift"], Options["location"], "recovered")
+        # Statistics.graphic_draw(Options["Shift"], Options["location"], "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
         context.bot.send_photo(
             chat_id=chat_id,
             photo=open("graphic.png", "rb"))
@@ -513,7 +589,9 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('corona_stats_in_russia', corona_stats_in_russia))
     updater.dispatcher.add_handler(CommandHandler('corona_stats_dynamics', corona_stats_dynamics))
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
+    updater.dispatcher.add_handler(CommandHandler('corona_video', send_corona_video))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
+
 
     # on non-command i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
