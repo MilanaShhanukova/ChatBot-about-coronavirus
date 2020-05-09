@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import requests
 import csv
+import re
 import logging
 import datetime
 import pyowm
@@ -26,6 +27,7 @@ Options = dict()
 Options["Choose_country"] = False
 Options["Choose_country_for_search_statistics"] = False
 Options["Corona_stats_in_russia"] = False
+Options["Choose_day"] = False
 Options["Shift"] = 0
 Options["location"] = " "
 
@@ -66,7 +68,7 @@ BUTTON17 = "dynamics"
 BUTTON18 = "confirmed"
 BUTTON19 = "deaths"
 BUTTON20 = "recovered"
-#BUTTON19 = "video_about_corona"
+BUTTON21 = "number_of_days"
 
 # Информация в кнопках
 TITLES = {
@@ -89,8 +91,10 @@ TITLES = {
     BUTTON17: "Отследить динамику распространения вируса",
     BUTTON18: "Посмотреть график подтвержденных случаев",
     BUTTON19: "Посмотреть график умерших",
-    BUTTON20: "Посмотреть график выздоровевших"
+    BUTTON20: "Посмотреть график выздоровевших",
+    BUTTON21: "Ввести количество дней"
 }
+
 
 # Клавиатуры:
 def corona_stats_keyboard():
@@ -103,7 +107,8 @@ def corona_stats_keyboard():
 def corona_stats_dynamics_keyboard():
     new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON14], callback_data=BUTTON14)],
                     [InlineKeyboardButton(TITLES[BUTTON15], callback_data=BUTTON15)],
-                    [InlineKeyboardButton(TITLES[BUTTON16], callback_data=BUTTON16)]]
+                    [InlineKeyboardButton(TITLES[BUTTON16], callback_data=BUTTON16)],
+                    [InlineKeyboardButton(TITLES[BUTTON21], callback_data=BUTTON21)]]
     return InlineKeyboardMarkup(new_keyboard)
 
 
@@ -133,10 +138,11 @@ def graphic_keyboard():
                     [InlineKeyboardButton(TITLES[BUTTON20], callback_data=BUTTON20)]]
     return InlineKeyboardMarkup(new_keyboard)
 
+
 # Клавиатура для отправки видео
-#def video_keyboard():
-    #new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)]]
-    #return InlineKeyboardMarkup(new_keyboard)
+# def video_keyboard():
+# new_keyboard = [[InlineKeyboardButton(TITLES[BUTTON19], callback_data=BUTTON19)]]
+# return InlineKeyboardMarkup(new_keyboard)
 
 # Клавиатура с выбором критерия для вывода
 def aspect_keyboard():
@@ -189,6 +195,7 @@ def corona_stats_in_russia(update: Updater, context: CallbackContext):
         text=text)
     corona_parser.parse()
 
+
 @update_log
 def corona_video(update: Updater, context: CallbackContext):
     chat_id = update.message.chat_id
@@ -197,6 +204,7 @@ def corona_video(update: Updater, context: CallbackContext):
         chat_id=chat_id,
         text=text,
         reply_markup=video_keyboard())
+
 
 @update_log
 def corona_stats_dynamics(update: Updater, context: CallbackContext):
@@ -240,11 +248,26 @@ def to_fixed(value: int, digits=0):
 def echo(update: Update, context: CallbackContext):
     chat_id = update.message.chat_id
     if not (Options["Choose_country"] or Options["Choose_country_for_search_statistics"] or
-            Options["Corona_stats_in_russia"]):
+            Options["Corona_stats_in_russia"] or Options["Choose_day"]):
         text = update.message.text
         context.bot.send_message(
             chat_id=chat_id,
             text=text)
+    elif Options["Choose_day"]:
+        matcher = r"\d+\d?"
+        matched_day = re.findall(matcher, update.message.text)
+        if matched_day:
+            Options["Shift"] = matched_day[0]
+        else:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="Введите корректное количество дней")
+            return
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Введите название страны")
+        Options["Choose_day"] = False
+        Options["Choose_country_for_search_statistics"] = True
     elif Options["Corona_stats_in_russia"]:
         location = update.message.text
         with open("russian_data.csv", 'r', encoding='utf-8') as file:
@@ -277,15 +300,28 @@ def echo(update: Update, context: CallbackContext):
             Options["Choose_country"] = False
         # Для корона динамикс
         else:
-            parser.find_actual_data(Options["Shift"])
+            # Проверка на правильное количество дней
+            try:
+                parser.find_actual_data(int(Options["Shift"]))
+            except Exception as e:
+                print(repr(e))
+                context.bot.send_message(
+                    chat_id=chat_id,
+                    text="Введите корректное количество дней")
+                Options["Choose_country_for_search_statistics"] = False
+                Options["Choose_day"] = True
+                return
+
             old_data = parser.get_dynamics_info(target_country=update.message.text)
 
             # Проверка, на деление на ноль и сущетсвует ли вообще old_data
-            if not parser.found_data or not old_data["Confirmed"] or not old_data["Deaths"] or not old_data["Recovered"] or not old_data["Active"]:
+            if not parser.found_data or not old_data["Confirmed"] or not old_data["Deaths"] or not old_data[
+                "Recovered"] or not old_data["Active"]:
                 context.bot.send_message(
                     chat_id=chat_id,
                     text="Данных на данный промежуток пока что не сущетсвует")
                 Options["Choose_country_for_search_statistics"] = False
+                Options["Choose_country"] = False
                 return
             growth = {
                 "Confirmed_growth": (data["Confirmed"] - old_data["Confirmed"]) / old_data["Confirmed"] * 100,
@@ -327,7 +363,7 @@ def elapsed_time(update: Updater, context: CallbackContext):
                 period = datetime.datetime.now() - period
                 break
     update.message.reply_text(f"Прошло {period.seconds // 3600} часов, {(period.seconds % 3600) // 60} \
-        минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
+            минут, {(period.seconds % 3600) % 60} секунд с последнего вашего сообщения.")
 
 
 @update_log
@@ -367,11 +403,13 @@ def send_cat_fact(update: Updater, context: CallbackContext):
     cat_post = fact("https://cat-fact.herokuapp.com/facts")
     update.message.reply_text(cat_post)
 
+
 @update_log
 def send_corona_video(update: Update, context: CallbackContext):
     video_sender = Video_Corona()
     video = video_sender.show_me_video()
     update.message.reply_text(video)
+
 
 @update_log
 def history(update: Updater, context: CallbackContext):
@@ -508,6 +546,9 @@ def keyboard_handler(update: Update, context: CallbackContext):
             text="Введите название страны")
         Options["Shift"] = int(data[:data.find("_")]) + 1
         Options["Choose_country_for_search_statistics"] = True
+    elif data == BUTTON21:
+        # Если мы нажали на кнопку с выбором дня
+        Options["Choose_day"] = True
     elif data in BUTTON18:
         print(Options["location"])
         Options["location"] = LOG_HISTORY[-1]["message"]
@@ -559,7 +600,6 @@ def main():
     updater.dispatcher.add_handler(CommandHandler('check_exchange_rates', money))
     updater.dispatcher.add_handler(CommandHandler('corona_video', send_corona_video))
     updater.dispatcher.add_handler(CallbackQueryHandler(callback=keyboard_handler, pass_chat_data=True))
-
 
     # on non-command i.e message - echo the message on Telegram
     updater.dispatcher.add_handler(MessageHandler(Filters.text, echo))
