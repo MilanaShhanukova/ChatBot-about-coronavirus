@@ -11,15 +11,15 @@ class options(Enum):
 
 
 class Parser_CoronaVirus:
-
-    client = pymongo.MongoClient("localhost", 27017)
-    db = client.mongo_bd
-    corona_collection = db.corona_data
+    
     time = list()
 
     def __init__(self):
         self.found_data = False
         self.answer = list()
+        self.client = pymongo.MongoClient("localhost", 27017)
+        self.db = client.mongo_bd
+        self.corona_collection = db.corona_data
 
     # **** WRITE_CORONA_DATA
     # Анализируя дата определяет, есть ли уже данные в дб, коректна ли дата. Если данных в дб еще нет, возвращает запрос
