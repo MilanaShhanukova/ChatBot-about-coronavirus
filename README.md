@@ -17,7 +17,7 @@ ____
 - /weather - see the weather
 - /check_exchange_rates - see the dollar or euro rate for the current date.
 - /corono_stats - overview the coronovirus state in the World
-
+- /corona_video - to get a video from base about corona
 ____
 
 ## What can WhyNot do for the authors? 
