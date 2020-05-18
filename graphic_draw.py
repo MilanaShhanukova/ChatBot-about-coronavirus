@@ -101,7 +101,7 @@ class Statistics:
 
     def create_graphic_information(self, shift: int, location: str, aspect: str):
         self.now = datetime.datetime.today() - datetime.timedelta(days=1)
-        self.date = datetime.datetime.today() - datetime.timedelta(days=shift)
+        self.date = datetime.datetime.today() - datetime.timedelta(days=int(shift))
 
         req = requests.get(self.URLS[aspect])
 
