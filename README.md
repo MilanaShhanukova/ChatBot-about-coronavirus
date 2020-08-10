@@ -1,5 +1,6 @@
-# Bot WhyNot 
+# Bot WhyNot :iphone:
 
+This is a bot built to help people get new information about coronavirus, was made in 2020. 
 ____
 
 ## What can this bot do for a user? 
